@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinanceSync Pro v3.3 - Google Drive Edition</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- html2pdf.js untuk export PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       ★ TAMBAHAN BARU: Custom Styles untuk Upload Progress & Drive Integration
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <style>
+    /* ===== UPLOAD PROGRESS BAR ===== */
+    .upload-progress-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+    
+    .upload-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4285f4, #34a853);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    
+    .upload-progress-bar.animating {
+      animation: progress-pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes progress-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    /* ===== FILE ITEM CARD ===== */
+    .file-item-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(66, 133, 244, 0.1);
+      border: 1px solid rgba(66, 133, 244, 0.2);
+      border-radius: 8px;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+    }
+    
+    .file-item-card:hover {
+      background: rgba(66, 133, 244, 0.15);
+      border-color: rgba(66, 133, 244, 0.4);
+    }
+    
+    .file-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    
+    .file-item-icon.pdf { background: #fee2e2; color: #dc2626; }
+    .file-item-icon.image { background: #dbeafe; color: #2563eb; }
+    .file-item-icon.doc { background: #fef3c7; color: #d97706; }
+    .file-item-icon.default { background: rgba(255,255,255,0.1); color: #9ca3af; }
+    
+    .file-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .file-item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #e5e7eb;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .file-item-size {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+    
+    .file-item-remove {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: rgba(239, 68, 68, 0.1);
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    
+    .file-item-remove:hover {
+      background: rgba(239, 68, 68, 0.2);
+      transform: scale(1.05);
+    }
+    
+    /* ===== UPLOAD STATUS BADGES ===== */
+    .upload-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .upload-status-badge.pending {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    
+    .upload-status-badge.uploading {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    
+    .upload-status-badge.success {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    
+    .upload-status-badge.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    /* ===== DRIVE LINK DISPLAY ===== */
+    .drive-link-display {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 8px;
+      display: none;
+    }
+    
+    .drive-link-display.show {
+      display: block;
+    }
+    
+    .drive-link-url {
+      font-size: 11px;
+      color: #4ade80;
+      word-break: break-all;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    /* ===== DRAG & DROP ACTIVE STATE ===== */
+    .upload-area.drag-over {
+      border-color: #4285f4 !important;
+      background: rgba(66, 133, 244, 0.08) !important;
+      transform: scale(1.01);
+    }
+    
+    .upload-area.drag-over .upload-drag-highlight {
+      display: block !important;
+    }
+    
+    .upload-drag-highlight {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(66, 133, 244, 0.1);
+      border: 2px dashed #4285f4;
+      border-radius: inherit;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    
+    /* ===== SPINNER ANIMATION ===== */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Background Effects -->
+  <div class="bg-pattern"></div>
+  <div class="bg-gradient"></div>
+
+  <main class="relative z-10 min-h-screen">
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="border-b border-[--border] bg-[--bg]/90 backdrop-blur-lg sticky top-0 z-50 no-print">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3 animate-in">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive] to-[--sheets] flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-lg font-semibold">FinanceSync Pro v3.3</h1>
+            <p class="text-xs text-[--muted]">Google Drive Edition</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-3 animate-in delay-1">
+          <!-- Connection Status Indicator -->
+          <div id="connectionStatus" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[--bg-secondary]">
+            <div class="status-dot connecting" id="statusDot"></div>
+            <span class="status-text status-text-muted" id="statusText">Menghubungkan...</span>
+          </div>
+          
+          <!-- Setup Button -->
+          <button id="setupBtn" class="btn-setup" onclick="openSetupModal()" aria-label="Pengaturan Firebase">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-1.065-2.573c-.94-1.543.826-3.31-2.573c-.94-1.543.826-3.31-2.37a1.724 1.724 0 00-1.066-2.573c-.94-1.543.826-3.31-2.37.996.608.608.608.608Z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>Setup Firebase</span>
+          </button>
+          
+          <!-- Apps Script Code Button -->
+          <button class="btn-secondary" onclick="openGasModal()" title="Salin Kode Apps Script">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="max-w-6xl mx-auto px-6 py-8">
+
+      <!-- Connection Banner -->
+      <div id="connectionBanner" class="connection-banner no-print" style="display: none;">
+        <svg class="w-6 h-6 text-blue-400 flex-shrink-0 firebase-logo" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
+        </svg>
+        <div class="flex-1">
+          <div class="font-semibold text-sm text-white" id="bannerTitle">Menyiapkan...</div>
+          <div class="text-xs text-gray-300 mt-1" id="bannerMessage">Mohon tunggu sebentar</div>
+        </div>
+        <button onclick="openSetupModal()" class="copy-btn">Setup</button>
+      </div>
+
+      <!-- Google Drive Sync Status Banner -->
+      <div id="driveStatusBanner" class="drive-status-banner no-print" style="display:none;">
+        <svg class="w-5 h-5 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+        <div class="flex-1">
+          <span class="font-medium text-white" id="driveStatusText">Menunggu sinkronisasi Google Drive...</span>
+        </div>
+        <div id="driveStatusBadge" class="drive-status-badge pending">⏳ Pending</div>
+      </div>
+
+      <!-- Architecture Info Banner -->
+      <div id="archBanner" class="bg-blue-900/30 rounded-xl p-4 border border-blue-700/30 mb-6 no-print" style="display:none;">
+        <div class="flex items-start gap-3">
+          <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div>
+            <h3 class="font-semibold text-sm text-blue-300 mb-1">🏗️ Arsitektur Firebase → Google Drive</h3>
+            
+            <!-- ★ UPDATE: Info arsitektur yang lebih detail -->
+            <p class="text-xs text-gray-400 mb-2">
+              Data disimpan ke <strong class="text-yellow-300">Firebase Firestore</strong>, 
+              File dikonversi ke Base64, kemudian <strong class="text-green-300">Apps Script</strong> 
+              membuat file di <strong class="text-blue-300">Google Drive</strong>.
+            </p>
+            
+            <!-- ★ TAMBAHAN: Status koneksi Apps Script -->
+            <div id="archAppsScriptStatus" class="mt-2 p-2 bg-black/20 rounded-lg text-xs" style="display:none;">
+              <div class="flex items-center justify-between">
+                <span class="text-gray-400">Apps Script URL:</span>
+                <span id="archAppsScriptUrlDisplay" class="text-green-400 font-mono truncate max-w-[200px]">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 no-print">
+        <div class="card animate-in delay-1">
+          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">Total Data</div>
+          <div class="text-2xl font-bold" id="totalData">0</div>
+        </div>
+        <div class="card animate-in delay-2">
+          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">🔥 Firebase</div>
+          <div class="text-2xl font-bold text-[--success]" id="sentData">0</div>
+        </div>
+        <div class="card animate-in delay-3">
+          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">☁️ Google Drive</div>
+          <div class="text-2xl font-bold text-[--drive]" id="sheetsData">0</div>
+        </div>
+        <div class="card animate-in delay-4">
+          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">⏳ Pending Sync</div>
+          <div class="text-2xl font-bold text-[--warning]" id="pendingData">0</div>
+        </div>
+        
+        <!-- ★ TAMBAHAN BARU: Card untuk Upload Status -->
+        <div class="card animate-in delay-5 col-span-2 md:col-span-4" id="uploadStatsCard" style="display:none;">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">📎 Upload Status</div>
+              <div class="text-lg font-semibold" id="uploadStatusText">Tidak ada file</div>
+            </div>
+            <div id="uploadStatusBadgeContainer"></div>
+          </div>
+          <!-- Progress Bar -->
+          <div class="upload-progress-container mt-3" id="globalUploadProgress" style="display:none;">
+            <div class="upload-progress-bar" id="globalUploadProgressBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid: Form + History -->
+      <div class="grid lg:grid-cols-5 gap-8">
+
+        <!-- ==================== FORM INPUT ==================== -->
+        <div class="lg:col-span-3 no-print">
+          <div class="card animate-in delay-3">
+            
+            <!-- Edit Mode Container (Dynamic) -->
+            <div id="editModeContainer"></div>
+            
+            <!-- Form Header -->
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive]/20 to-[--sheets]/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-[--drive]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold">Form Pengajuan</h2>
+                <p class="text-sm text-[--muted]">Simpan ke Firebase → File otomatis ke Google Drive</p>
+              </div>
+            </div>
+
+            <!-- Main Form -->
+            <form id="dataForm" class="space-y-4">
+              
+              <!-- Row 1: Tanggal & Lokasi -->
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label" for="tanggal">Tanggal Invoice<span class="required-star">*</span></label>
+                  <input type="date" id="tanggal" name="tanggal" class="input-field" required>
+                </div>
+                <div>
+                  <label class="field-label" for="lokasi">Lokasi<span class="required-star">*</span></label>
+                  <input type="text" id="lokasi" name="lokasi" class="input-field" placeholder="Contoh: Lt.1" required>
+                </div>
+              </div>
+
+              <!-- Row 2: Jenis Pengajuan & Kode -->
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label" for="jenis_pengajuan">Jenis Pengajuan<span class="required-star">*</span></label>
+                  <input type="text" id="jenis_pengajuan" name="jenis_pengajuan" class="input-field" placeholder="Masukkan jenis pengajuan" required>
+                </div>
+                <div>
+                  <label class="field-label" for="kode">Kode<span class="required-star">*</span></label>
+                  <input type="text" id="kode" name="kode" class="input-field mono" placeholder="Masukkan kode" required>
+                </div>
+              </div>
+
+              <!-- Row 3: No Invoice & Status -->
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label" for="no_invoice">No Invoice / Berkas</label>
+                  <input type="text" id="no_invoice" name="no_invoice" class="input-field mono" placeholder="(opsional)">
+                </div>
+                <div>
+                  <label class="field-label" for="status">Status Pembayaran<span class="required-star">*</span></label>
+                  <select id="status" name="status" class="input-field" required>
+                    <option value="">Pilih status</option>
+                    <option value="Lunas">Lunas</option>
+                    <option value="Belum Lunas">Belum Lunas</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Items Section -->
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <label class="field-label">Rincian Barang / Jasa<span class="required-star">*</span></label>
+                  <span class="text-xs text-[--muted]">Minimal 1 item wajib diisi</span>
+                </div>
+                <div id="itemsContainer" class="space-y-2"></div>
+                <button type="button" onclick="addFormItem()" class="btn-add-item mt-3">+ Tambah Item Baru</button>
+              </div>
+
+              <!-- Total & Payment Date -->
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label">Total Nominal (Otomatis)</label>
+                  <div class="currency-wrapper">
+                    <span class="prefix">Rp</span>
+                    <input type="text" id="grandTotalDisplay" class="input-field mono" readonly placeholder="0" style="background: rgba(255,255,255,0.05);">
+                  </div>
+                </div>
+                <div id="paymentDateContainer">
+                  <label class="field-label" for="tanggal_pembayaran">Tanggal Pembayaran</label>
+                  <input type="date" id="tanggal_pembayaran" name="tanggal_pembayaran" class="input-field">
+                </div>
+              </div>
+
+              <!-- Payment Recipient -->
+              <div>
+                <label class="field-label" for="dibayarkan_kepada">Dibayarkan Kepada<span class="required-star">*</span></label>
+                <input type="text" id="dibayarkan_kepada" name="dibayarkan_kepada" class="input-field" placeholder="Nama penerima pembayaran" required>
+              </div>
+
+              <!-- ═══════════════════════════════════════════════════════════════
+                   ★ UPDATE: File Upload Section - Enhanced Version
+                   Support: Multiple files, larger size, drag & drop, progress
+                   ═══════════════════════════════════════════════════════════════ -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="field-label">Upload Bukti Dokumen</label>
+                  
+                  <!-- ★ UPDATE: Badge dengan info lebih lengkap -->
+                  <div class="flex items-center gap-2">
+                    <span class="drive-badge">📁 Google Drive</span>
+                    <span class="text-xs text-[--muted]" id="uploadLimitInfo">(Max 30MB)</span>
+                  </div>
+                </div>
+                
+                <!-- Upload Area with Drag & Drop -->
+                <div id="uploadArea" class="upload-area relative" 
+                     onclick="document.getElementById('fileInput').click()"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event)">
+                  
+                  <!-- Hidden File Input - ★ UPDATED accept attributes -->
+                  <input type="file" 
+                         id="fileInput" 
+                         accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                         multiple 
+                         hidden 
+                         onchange="handleFileSelect(this)">
+                  
+                  <!-- Drag & Drop Highlight Overlay -->
+                  <div class="upload-drag-highlight rounded-xl">
+                    <div class="text-center p-4">
+                      <svg class="w-12 h-12 mx-auto text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                      </svg>
+                      <p class="text-base font-medium text-blue-300">Drop file di sini</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Default Placeholder (shown when no files selected) -->
+                  <div id="uploadPlaceholder">
+                    <svg class="w-8 h-8 mx-auto mb-2 text-[--muted]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <p class="text-sm text-[--muted]">Klik untuk upload bukti invoice/foto</p>
+                    
+                    <!-- ★ UPDATE: Info format yang didukung -->
+                    <p class="text-xs text-gray-500 mt-2">
+                      Format: PDF, JPG, PNG, DOC, XLS, PPT (Maks <strong class="text-green-400" id="maxSizeDisplay">30MB</strong>)
+                    </p>
+                    
+                    <!-- ★ UPDATE: Info proses yang lebih akurat -->
+                    <p class="text-xs text-blue-400 mt-1">
+                      🚀 File langsung tersimpan ke <strong>Google Drive</strong> via Apps Script
+                    </p>
+                  </div>
+                  
+                  <!-- ★ TAMBAHAN: File List Display Container -->
+                  <div id="fileListDisplay" class="mt-3 space-y-2"></div>
+                  
+                  <!-- ★ TAMBAHAN: Upload Progress Container -->
+                  <div class="upload-progress-container" id="uploadProgressContainer">
+                    <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                  </div>
+                  
+                  <!-- ★ TAMBAHAN: Drive Link Result Display -->
+                  <div class="drive-link-display" id="driveLinkResult">
+                    <div class="flex items-start gap-2">
+                      <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
+                      </svg>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-xs text-green-400 font-medium mb-1">✅ File berhasil disimpan ke Google Drive!</p>
+                        <a id="driveLinkUrl" href="#" target="_blank" class="drive-link-url text-xs hover:underline"></a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- ★ TAMBAHAN: Quick Actions for Selected Files -->
+                <div id="selectedFilesActions" class="flex items-center justify-between mt-2" style="display:none;">
+                  <span class="text-xs text-[--muted]" id="selectedFilesCount">0 file dipilih</span>
+                  <button type="button" onclick="clearSelectedFiles()" class="text-xs text-red-400 hover:text-red-300 transition-colors">
+                    🗑️ Hapus Semua File
+                  </button>
+                </div>
+              </div>
+
+              <!-- Additional Notes -->
+              <div>
+                <label class="field-label" for="catatan_tambahan">Catatan Tambahan <span class="text-[--muted] font-normal">(opsional)</span></label>
+                <textarea id="catatan_tambahan" name="catatan_tambahan" rows="2" class="input-field resize-none" placeholder="Tambahkan catatan khusus..."></textarea>
+              </div>
+
+              <!-- Validation Error Display -->
+              <div id="validationError" class="validation-error">
+                <strong style="color:#fca5a5;font-size:14px;margin-bottom:8px;display:block;">Mohon lengkapi field berikut:</strong>
+                <ul id="validationErrorList"></ul>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex flex-wrap items-center gap-3 pt-4">
+                
+                <!-- Submit Button - ★ Updated dengan indikator loading -->
+                <button type="submit" id="submitBtn" class="btn-submit">
+                  <svg id="submitBtnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 3z"/>
+                  </svg>
+                  <span id="submitBtnText">💾 Simpan ke Firebase</span>
+                </button>
+                
+                <button type="button" id="previewBtn" class="btn-print">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542 7-4.477 0z"/>
+                  </svg>
+                  <span>Preview & PDF</span>
+                </button>
+                
+                <!-- Force Sync Button - UPDATED with Status Container -->
+                <div class="sync-button-wrapper">
+                  <button type="button" id="forceSyncBtn" class="btn-drive-sync" onclick="triggerManualSync()" title="Sinkronisasi data ke Google Sheets">
+                    <svg id="syncIcon" class="drive-sync-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    <span id="syncBtnText">Sync ke Sheets</span>
+                  </button>
+                  
+                  <!-- Status Message Container -->
+                  <div id="manualSyncStatus" class="manual-sync-status" style="display: none;"></div>
+                  
+                  <!-- Last Sync Time Info -->
+                  <div id="lastSyncInfoContainer" class="last-sync-info-text" style="display: none;">
+                    <small>🕐 Terakhir: <span id="lastSyncTimeDisplay">-</span></small>
+                  </div>
+                </div>
+                
+                <button type="reset" class="text-[--muted] hover:text-[--fg] transition-colors text-sm" onclick="resetUploadArea()">Reset</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ==================== HISTORY PANEL ==================== -->
+        <div class="lg:col-span-2 no-print">
+          <div class="card animate-in delay-4">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
+              <button id="clearHistory" class="text-xs text-[--muted] hover:text-[--error] transition-colors">Hapus Semua</button>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="flex gap-1 mb-3 p-1 bg-[--bg-secondary] rounded-lg">
+              <button class="tab-btn active flex-1" data-tab="Lunas">Lunas</button>
+              <button class="tab-btn flex-1" data-tab="Belum Lunas">Belum Lunas</button>
+            </div>
+
+            <!-- Date Filter -->
+            <div class="mb-3 p-3 bg-[--bg-secondary] rounded-lg" id="dateFilterSection">
+              <div class="flex items-center gap-2 mb-2">
+                <svg class="w-4 h-4 text-[--muted]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2 2V7a2 2 0 00-2-2H5a2 2 0 00-2 2V7zM5 21H5z"/>
+                </svg>
+                <span class="text-xs font-medium text-[--muted]">FILTER TANGGAL</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[10px] text-[--muted] block mb-1">Dari</label>
+                  <input type="date" id="filterDateFrom" class="input-field text-xs" style="padding:8px 10px;">
+                </div>
+                <div>
+                  <label class="text-[10px] text-[--muted] block mb-1">Sampai</label>
+                  <input type="date" id="filterDateTo" class="input-field text-xs" style="padding:8px 10px;">
+                </div>
+              </div>
+              <button onclick="clearDateFilter()" class="text-[10px] text-[--firebase] hover:underline mt-2 block">Reset Filter</button>
+            </div>
+
+            <!-- History List Container -->
+            <div id="historyList" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+              <div class="text-center py-10 text-[--muted]">
+                <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-sm">Belum ada data</p>
+                <p class="text-xs mt-2 text-[--drive]">File otomatis tersimpan ke Google Drive</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Setup Modal (Firebase Configuration) -->
+  <div id="setupModal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+          <span class="text-2xl">⚙️</span> Konfigurasi Firebase
+        </h2>
+        <button onclick="closeSetupModal()" class="w-8 h-8 rounded-lg hover:bg-[--bg-secondary] flex items-center justify-center transition-colors" aria-label="Tutup">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-6">
+        
+        <!-- Step 1: Firebase Config -->
+        <div class="setup-step">
+          <div class="flex items-start gap-3">
+            <div class="step-number">1</div>
+            <div class="flex-1">
+              <h3 class="font-semibold text-base mb-2">🔥 Firebase Configuration</h3>
+              <p class="text-sm text-[--muted] mb-3">Hanya butuh Firestore (Gratis, tanpa kartu kredit).</p>
+              
+              <!-- Wrong Example -->
+              <div class="example-config-box wrong-example">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-lg">❌</span>
+                  <strong class="text-red-400 text-sm">Jangan copy ini:</strong>
+                </div>
+                <div class="config-box text-red-300" style="color:#fca5a5;">
+// Import...<br>
+const firebaseConfig = {<br>
+&nbsp;&nbsp;apiKey: "...",<br>
+&nbsp;&nbsp;...<br>
+};<br>
+const app = initializeApp(...);
+                </div>
+              </div>
+
+              <!-- Correct Example -->
+              <div class="example-config-box">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-lg">✅</span>
+                  <strong class="text-green-400 text-sm">Copy HANYA ini:</strong>
+                </div>
+                <div class="config-box">
+{<br>
+&nbsp;&nbsp;"apiKey": "AIzaSy...",<br>
+&nbsp;&nbsp;"authDomain": "...",<br>
+&nbsp;&nbsp;"projectId": "...",<br>
+&nbsp;&nbsp;...<br>
+}
+                </div>
+              </div>
+
+              <!-- Input Field -->
+              <div class="mt-3">
+                <label class="field-label">Paste Firebase Config:</label>
+                <textarea id="firebaseConfigInput" class="input-field resize-none" rows="4" placeholder='{"apiKey": "...", ...}' style="font-family:'JetBrains Mono',monospace;font-size:11px;"></textarea>
+                <div id="configError" class="text-xs text-red-400 mt-2 hidden"></div>
+              </div>
+              
+              <button onclick="saveFirebaseConfig()" class="copy-btn mt-3 w-full">💾 Simpan & Connect</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: How It Works - ★ UPDATED Info -->
+        <div class="setup-step">
+          <div class="flex items-start gap-3">
+            <div class="step-number">2</div>
+            <div class="flex-1">
+              <h3 class="font-semibold text-base mb-2">📖 Cara Kerja File → Google Drive</h3>
+              
+              <div class="bg-blue-900/30 rounded-xl p-4 border border-blue-700/30">
+                <div class="space-y-3 text-sm text-gray-300">
+                  <div class="flex items-start gap-2">
+                    <span class="text-yellow-300 font-bold">1️⃣</span>
+                    <div>User upload file → Dikonversi jadi <strong class="text-blue-300">Base64</strong></div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-green-300 font-bold">2️⃣</span>
+                    <div>Data + Base64 dikirim ke <strong class="text-yellow-300">Google Apps Script</strong></div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-blue-300 font-bold">3️⃣</span>
+                    <div><strong>Apps Script</strong> membuat file di <strong class="text-blue-300">Google Drive</strong> & simpan link ke <strong class="text-yellow-300">Firebase</strong></div>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-purple-300 font-bold">4️⃣</span>
+                    <div>Status otomatis <strong class="text-purple-300">update</strong> di aplikasi (real-time listener)</div>
+                  </div>
+                </div>
+
+                <!-- ★ UPDATE: Batasan yang lebih realistis -->
+                <div class="mt-3 p-3 bg-[--bg] rounded-lg border border-[--border]">
+                  <p class="text-xs text-[--muted] mb-2 font-semibold">⚠️ INFORMASI:</p>
+                  <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside ml-4">
+                    <li>Maksimal <strong class="text-white">30MB per file</strong> (optimal untuk base64 encoding)</li>
+                    <li>Format: PDF, JPG, PNG, DOC, XLS, PPT, ZIP</li>
+                    <li>File muncul di Drive dalam <strong class="text-white">hitungan detik</strong> (real-time processing)</li>
+                    <li>Tidak perlu kartu kredit!</li>
+                    <li>Status sync otomatis ter-update via real-time listener</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ★ TAMBAHAN BARU: Step 3 - Apps Script URL Configuration -->
+        <div class="setup-step">
+          <div class="flex items-start gap-3">
+            <div class="step-number">3</div>
+            <div class="flex-1">
+              <h3 class="font-semibold text-base mb-2">🔗 Google Apps Script URL (Opsional)</h3>
+              <p class="text-sm text-[--muted] mb-3">Untuk fitur upload file ke Google Drive.</p>
+              
+              <div class="space-y-3">
+                <div>
+                  <label class="field-label">Apps Script Web App URL:</label>
+                  <input type="url" 
+                         id="appsScriptUrlInput" 
+                         class="input-field text-xs" 
+                         placeholder="https://script.google.com/macros/s/xxx/exec"
+                         style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+                  <p class="text-xs text-gray-500 mt-1">Dapatkan dari: Apps Script > Deploy > Web App</p>
+                </div>
+                
+                <div class="flex gap-2">
+                  <button onclick="saveAppsScriptUrl()" class="copy-btn flex-1">💾 Simpan URL</button>
+                  <button onclick="testAppsScriptConnection()" class="btn-secondary flex-1">🧪 Test Koneksi</button>
+                </div>
+                
+                <div id="appsScriptConnectionResult" class="text-xs p-2 rounded-lg hidden"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <button onclick="closeSetupModal()" class="copy-btn w-full">Tutup & Mulai Pakai</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Apps Script Modal -->
+  <div id="gasModal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+          <span class="text-2xl">📜</span> Kode Google Apps Script (Backend)
+        </h2>
+        <button onclick="closeGasModal()" class="w-8 h-8 rounded-lg hover:bg-[--bg-secondary] flex items-center justify-center transition-colors" aria-label="Tutup">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <p class="text-sm text-[--muted]">Salin kode di bawah ini dan tempelkan ke dalam editor <strong>Google Apps Script</strong> (script.google.com).</p>
+        <button onclick="copyGasCode()" class="copy-btn">📋 Salin Kode Backend</button>
+        <div class="gas-code-display" id="gasCodeContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document Preview Modal -->
+  <div id="documentModal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-content modal-document">
+      
+      <!-- Document Toolbar -->
+      <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 no-print page-toolbar">
+        <h2 class="text-lg font-semibold text-slate-800">Preview Dokumen</h2>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button class="btn-pdf" onclick="downloadAsPDF()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            Download PDF
+          </button>
+          <button class="btn-print-doc" onclick="window.print()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2 2v-4a2 2 0 003-3-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Print
+          </button>
+          <button onclick="closeDocumentModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-600" aria-label="Tutup">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Documents Container -->
+      <div class="documents-container">
+        <div id="pdf-wrapper" class="pdf-wrapper">
+          
+          <!-- PAGE 1: Form Pengajuan HO -->
+          <div class="document-page" id="documentPage1">
+            <div class="doc-header-center">
+              <img src="https://i.ibb.co.com/jN7Khby/Logo-Nusantara-Mineral-Abadi.webp" alt="Logo Nusantara Mineral Sukses Abadi" class="doc-company-logo" onerror="this.style.display='none'">
+              <div class="doc-form-title">FORMULIR PENGAJUAN HO</div>
+            </div>
+            
+            <div class="doc-info-grid">
+              <div class="doc-info-item"><span class="doc-info-label">Lokasi</span><span class="doc-info-value" id="p1_lokasi"></span></div>
+              <div class="doc-info-item"><span class="doc-info-label">Tanggal</span><span class="doc-info-value" id="p1_tanggal"></span></div>
+              <div class="doc-info-item"><span class="doc-info-label">Kode</span><span class="doc-info-value" id="p1_kode"></span></div>
+              <div class="doc-info-item"><span class="doc-info-label">Jenis</span><span class="doc-info-value" id="p1_jenis"></span></div>
+            </div>
+            
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th class="col-no">NO</th>
+                  <th class="col-item">ITEM</th>
+                  <th class="col-vol">JUMLAH / VOLUME</th>
+                  <th class="col-nominal">Total (Rp)</th>
+                  <th class="col-ket">KETERANGAN</th>
+                </tr>
+              </thead>
+              <tbody id="p1_table_body"></tbody>
+              <tfoot>
+                <tr class="doc-total-row">
+                  <td colspan="3" style="text-align:right">TOTAL</td>
+                  <td style="text-align:right" id="p1_total"></td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+            
+            <div id="p1_notes_manual_wrapper" style="display:none;">
+              <div class="doc-notes" style="margin-top:20px">
+                <div class="doc-notes-title">CATATAN:</div>
+                <div class="doc-notes-manual" id="p1_notes_manual"></div>
+              </div>
+            </div>
+            
+            <div class="doc-signatures-p1">
+              <div class="doc-sig-box">
+                <div class="doc-sig-label">DIBUAT OLEH</div>
+                <div class="doc-sig-space"></div>
+                <div class="doc-sig-name" id="p1_dibuat"></div>
+              </div>
+              <div class="doc-sig-box">
+                <div class="doc-sig-label">DISETUJUI</div>
+                <div class="doc-sig-space"></div>
+                <div class="doc-sig-name" id="p1_disetujui"></div>
+              </div>
+            </div>
+            
+            <div class="doc-notes">
+              <div class="doc-notes-title">NOTE :</div>
+              <div class="docs-notes-content">Dokumen ini adalah bukti pengajuan resmi PT. Nusantara Mineral Sukses Abadi. Harap simpan sebagai arsip.</div>
+            </div>
+          </div>
+
+          <!-- PAGE 2: Bukti Pengeluaran Kas/Bank -->
+          <div class="document-page" id="documentPage2">
+            <div class="doc-header-flex">
+              <div class="doc-header-left">
+                <img src="https://i.ibb.co.com/jN7Khby/Logo-Nusantara-Mineral-Abadi.webp" alt="Logo Nusantara Mineral Sukses Abadi" class="doc-company-logo" onerror="this.style.display='none'">
+              </div>
+              <div class="doc-header-right">
+                <div class="doc-form-title-right">BUKTI PENGELUARAN KAS / BANK</div>
+                <div class="doc-tanggal-box">Tanggal : <span id="p2_tanggal"></span></div>
+              </div>
+            </div>
+            
+            <div class="doc-payment-info">
+              <div class="doc-payment-row">
+                <span class="doc-payment-label">Kode</span>
+                <span class="doc-payment-value" id="p2_kode"></span>
+              </div>
+              <div class="doc-payment-row">
+                <span class="doc-payment-label">Dibayarkan kepada</span>
+                <span class="doc-payment-value" id="p2_dibayarkan"></span>
+              </div>
+              <div class="doc-payment-row">
+                <span class="doc-payment-label">Jenis Pengajuan</span>
+                <span class="doc-payment-value" id="p2_jenis"></span>
+              </div>
+              <div class="doc-payment-row">
+                <span class="doc-payment-label">Dibayarkan dengan</span>
+                <span class="doc-payment-value">
+                  <span class="doc-check">&nbsp;</span> Cek 
+                  <span style="margin-left:16px;"><span class="doc-check">X</span> Transfer</span>
+                </span>
+              </div>
+            </div>
+            
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th style="width:40px;text-align:center">NO</th>
+                  <th>URAIAN BARANG / JASA</th>
+                  <th style="width:70px;text-align:center">QTY</th>
+                  <th style="width:120px;text-align:right">JUMLAH (Rp)</th>
+                </tr>
+              </thead>
+              <tbody id="p2_table_body"></tbody>
+              <tfoot>
+                <tr class="doc-total-row">
+                  <td colspan="3" style="text-align:right">TOTAL</td>
+                  <td style="text-align:right" id="p2_total"></td>
+                </td>
+              </tr>
+            </table>
+            
+            <div id="p2_notes_manual_wrapper" style="display:none;">
+              <div class="doc-notes" style="margin-top:20px">
+                <div class="doc-notes-title">CATATAN:</div>
+                <div class="docs-notes-manual" id="p2_notes_manual"></div>
+              </div>
+            </div>
+            
+            <div class="doc-signatures-2x2">
+              <div class="doc-sig-row">
+                <div class="sig-block-page2">
+                  <div class="sig-action">DI VERIFIKASI</div>
+                  <div class="sig-space"></div>
+                  <div class="sig-name" id="p2_name_keuangan"></div>
+                  <div class="sig-title">Keuangan</div>
+                </div>
+                <div class="sig-block-page2">
+                  <div class="sig-action">DISETUJUI</div>
+                  <div class="sig-space"></div>
+                  <div class="sig-name" id="p2_name_dirkeuangan"></div>
+                  <div class="sig-title">Dir. Keuangan</div>
+                </div>
+              </div>
+              <div class="doc-sig-row">
+                <div class="sig-block-page2">
+                  <div class="sig-action">DISETUJUI</div>
+                  <div class="sig-space"></div>
+                  <div class="sig-name" id="p2_name_direktur"></div>
+                  <div class="sig-title">Direktur Utama</div>
+                </div>
+                <div class="sig-block-page2">
+                  <div class="sig-action">DIBUKUKAN</div>
+                  <div class="sig-space"></div>
+                  <div class="sig-name" id="p2_name_accounting"></div>
+                  <div class="sig-title">Accounting</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteConfirmModal" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal-content" style="max-width:420px">
+      <div class="text-center">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-900/30 flex items-center justify-center">
+          <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </div>
+        <h3 class="text-xl font-semibold text-white mb-2">Hapus Data Ini?</h3>
+        <p class="text-sm text-gray-300 mb-6" id="deleteItemInfo">Kode: INV-001 • Rp 1.500.000</p>
+        <div class="flex gap-3 justify-center">
+          <button onclick="closeDeleteModal()" class="btn-secondary px-8">Batal</button>
+          <button onclick="confirmDelete()" class="px-8 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors">Ya, Hapus</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" role="alert"></div>
+
+  </main>
+
+  <!-- ==================== JAVASCRIPT FILES ==================== -->
+  
+  <!-- 1. Configuration & Global State -->
+  <script src="js/config.js"></script>
+  
+  <!-- 2. Utility Functions -->
+  <script src="js/utils.js"></script>
+  
+  <!-- 3. Firebase Initialization -->
+  <script src="js/firebase-init.js"></script>
+  
+  <!-- 4. Firestore Database Operations -->
+  <script src="js/firestore-db.js"></script>
+  
+  <!-- 5. Google Drive Sync Functions -->
+  <script src="js/drive-sync.js"></script>
+  
+  <!-- 6. Main Application Logic (UI, Forms, etc.) -->
+  <script src="js/app.js"></script>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       ★ TAMBAHAN BARU: Inline Helper Functions untuk Upload UI
+       Fungsi-fungsi ini dipanggil dari event handlers di HTML
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <script>
+    /**
+     * ============================================
+     * INLINE HELPERS - Upload UI Functions
+     * ============================================
+     * Fungsi-fungsi ini menangani interaksi UI upload
+     * dan dipanggil langsung dari HTML attributes
+     */
+    
+    // ===== DRAG & DROP HANDLERS =====
+    
+    /**
+     * Handle drag over event
+     * @param {DragEvent} e - Drag event
+     */
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const uploadArea = document.getElementById('uploadArea');
+      if (uploadArea) {
+        uploadArea.classList.add('drag-over');
+      }
+    }
+    
+    /**
+     * Handle drag leave event
+     * @param {DragEvent} e - Drag event
+     */
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const uploadArea = document.getElementById('uploadArea');
+      if (uploadArea) {
+        uploadArea.classList.remove('drag-over');
+      }
+    }
+    
+    /**
+     * Handle drop event
+     * @param {DragEvent} e - Drop event
+     */
+    function handleDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const uploadArea = document.getElementById('uploadArea');
+      if (uploadArea) {
+        uploadArea.classList.remove('drag-over');
+      }
+      
+      // Get dropped files
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        // Set files to the hidden input
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+          // Note: Cannot programmatically set files to input
+          // So we handle it differently - call the main handler directly
+          if (typeof window.handleExternalFiles === 'function') {
+            window.handleExternalFiles(files);
+          } else {
+            console.warn('handleExternalFiles not found in app.js');
+          }
+        }
+      }
+    }
+    
+    // ===== FILE MANAGEMENT FUNCTIONS =====
+    
+    /**
+     * Clear all selected files from the upload area
+     */
+    function clearSelectedFiles() {
+      // Clear state
+      if (typeof window.state !== 'undefined') {
+        window.state.selectedFiles = [];
+      }
+      
+      // Reset file input
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
+      // Clear display
+      const fileListDisplay = document.getElementById('fileListDisplay');
+      if (fileListDisplay) {
+        fileListDisplay.innerHTML = '';
+      }
+      
+      // Show placeholder again
+      const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+      if (uploadPlaceholder) {
+        uploadPlaceholder.style.display = 'block';
+      }
+      
+      // Hide actions bar
+      const selectedFilesActions = document.getElementById('selectedFilesActions');
+      if (selectedFilesActions) {
+        selectedFilesActions.style.display = 'none';
+      }
+      
+      // Hide drive link result
+      const driveLinkResult = document.getElementById('driveLinkResult');
+      if (driveLinkResult) {
+        driveLinkResult.classList.remove('show');
+      }
+      
+      console.log('🗑️ All selected files cleared');
+    }
+    
+    /**
+     * Reset upload area to initial state
+     */
+    function resetUploadArea() {
+      clearSelectedFiles();
+      
+      // Hide progress
+      hideUploadProgress();
+    }
+    
+    // ===== PROGRESS INDICATOR FUNCTIONS =====
+    
+    /**
+     * Show upload progress bar
+     * @param {number} percent - Progress percentage (0-100)
+     */
+    function showUploadProgress(percent = 0) {
+      const container = document.getElementById('uploadProgressContainer');
+      const bar = document.getElementById('uploadProgressBar');
+      
+      if (container && bar) {
+        container.style.display = 'block';
+        bar.style.width = Math.min(100, Math.max(0, percent)) + '%';
+        
+        if (percent > 0 && percent < 100) {
+          bar.classList.add('animating');
+        } else {
+          bar.classList.remove('animating');
+        }
+      }
+    }
+    
+    /**
+     * Hide upload progress bar
+     */
+    function hideUploadProgress() {
+      const container = document.getElementById('uploadProgressContainer');
+      const bar = document.getElementById('uploadProgressBar');
+      
+      if (container) {
+        container.style.display = 'none';
+      }
+      if (bar) {
+        bar.style.width = '0%';
+        bar.classList.remove('animating');
+      }
+    }
+    
+    // ===== APPS SCRIPT CONFIG FUNCTIONS (for Setup Modal) =====
+    
+    /**
+     * Save Apps Script URL from setup modal
+     */
+    function saveAppsScriptUrl() {
+      const input = document.getElementById('appsScriptUrlInput');
+      const resultDiv = document.getElementById('appsScriptConnectionResult');
+      
+      if (!input) return;
+      
+      const url = input.value.trim();
+      
+      if (!url) {
+        showAppsScriptResult(resultDiv, 'error', 'URL tidak boleh kosong');
+        return;
+      }
+      
+      // Validate URL format
+      if (!url.includes('script.google.com')) {
+        showAppsScriptResult(resultDiv, 'error', 'URL harus dari script.google.com');
+        return;
+      }
+      
+      // Save using ConfigHelper or direct localStorage
+      if (typeof window.APPS_SCRIPT_CONFIG !== 'undefined') {
+        window.APPS_SCRIPT_CONFIG.setUrl(url);
+      } else {
+        localStorage.setItem(window.CONFIG_KEYS?.APPS_SCRIPT_URL || 'apps_script_url', url);
+        if (typeof window.state !== 'undefined') {
+          window.state.appsScriptUrl = url;
+        }
+      }
+      
+      showAppsScriptResult(resultDiv, 'success', '✅ URL berhasil disimpan!');
+      
+      // Update architecture banner if visible
+      updateArchBannerAppsScriptStatus(url);
+      
+      console.log('💾 Apps Script URL saved:', url);
+    }
+    
+    /**
+     * Test connection to Apps Script
+     */
+    async function testAppsScriptConnection() {
+      const resultDiv = document.getElementById('appsScriptConnectionResult');
+      const url = typeof window.APPS_SCRIPT_CONFIG !== 'undefined' 
+        ? window.APPS_SCRIPT_CONFIG.getUrl() 
+        : (window.state?.appsScriptUrl || '');
+      
+      if (!url) {
+        showAppsScriptResult(resultDiv, 'error', 'URL belum dikonfigurasi');
+        return;
+      }
+      
+      showAppsScriptResult(resultDiv, 'uploading', '<span class="spinner"></span> Menguji koneksi...');
+      
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'test_connection' })
+        });
+        
+        // With no-cors, we can't read response, so assume success after timeout
+        setTimeout(() => {
+          showAppsScriptResult(resultDiv, 'success', '✅ Koneksi berhasil! (Response tidak terbaca karena CORS)');
+        }, 1500);
+        
+      } catch (error) {
+        showAppsScriptResult(resultDiv, 'error', '❌ Gagal: ' + error.message);
+      }
+    }
+    
+    /**
+     * Show result message in apps script connection test
+     */
+    function showAppsScriptResult(container, type, message) {
+      if (!container) return;
+      
+      container.className = 'text-xs p-2 rounded-lg block';
+      container.innerHTML = message;
+      
+      switch(type) {
+        case 'success':
+          container.classList.add('bg-green-900/30', 'text-green-400', 'border', 'border-green-700/30');
+          break;
+        case 'error':
+          container.classList.add('bg-red-900/30', 'text-red-400', 'border', 'border-red-700/30');
+          break;
+        case 'uploading':
+          container.classList.add('bg-blue-900/30', 'text-blue-400', 'border', 'border-blue-700/30');
+          break;
+      }
+    }
+    
+    /**
+     * Update architecture banner with Apps Script status
+     */
+    function updateArchBannerAppsScriptStatus(url) {
+      const statusContainer = document.getElementById('archAppsScriptStatus');
+      const urlDisplay = document.getElementById('archAppsScriptUrlDisplay');
+      
+      if (statusContainer && url) {
+        statusContainer.style.display = 'block';
+        if (urlDisplay) {
+          urlDisplay.textContent = url.length > 30 ? url.substring(0, 30) + '...' : url;
+          urlDisplay.title = url;
+        }
+      }
+    }
+    
+    // ===== INITIALIZATION ON DOM LOAD =====
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Display max size from config if available
+      const maxSizeDisplay = document.getElementById('maxSizeDisplay');
+      if (maxSizeDisplay && typeof window.UPLOAD_CONFIG !== 'undefined') {
+        maxSizeDisplay.textContent = window.UPLOAD_CONFIG.maxSizeDisplay;
+      }
+      
+      // Update Apps Script status in arch banner if configured
+      const appsScriptUrl = typeof window.APPS_SCRIPT_CONFIG !== 'undefined'
+        ? window.APPS_SCRIPT_CONFIG.getUrl()
+        : (window.state?.appsScriptUrl || '');
+      
+      if (appsScriptUrl) {
+        updateArchBannerAppsScriptStatus(appsScriptUrl);
+      }
+    });
+  </script>
+
+</body>
+</html>
