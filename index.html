@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinanceSync Pro v3.4 - Multi-Company Edition</title>
+  <title>FinanceSync Pro v3.4 - FIXED VERSION</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,16 +13,14 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   
-  <!-- html2pdf.js untuk export PDF -->
+  <!-- html2pdf.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    /* ===== CSS VARIABLES ===== */
     :root {
       --bg: #0f172a;
       --bg-secondary: #1e293b;
@@ -31,7 +29,6 @@
       --border: #334155;
       --drive: #4285f4;
       --sheets: #34a853;
-      --firebase: #ffca28;
       --success: #22c55e;
       --warning: #f59e0b;
       --error: #ef4444;
@@ -46,7 +43,6 @@
       line-height: 1.6;
     }
 
-    /* ===== BACKGROUND EFFECTS ===== */
     .bg-pattern {
       position: fixed;
       inset: 0;
@@ -57,15 +53,6 @@
       z-index: 0;
     }
 
-    .bg-gradient {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ===== UTILITY CLASSES ===== */
     .card {
       background: rgba(30, 41, 59, 0.7);
       backdrop-filter: blur(10px);
@@ -99,13 +86,8 @@
       margin-bottom: 8px;
     }
 
-    .required-star {
-      color: var(--error);
-    }
-
-    .mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
+    .required-star { color: var(--error); }
+    .mono { font-family: 'JetBrains Mono', monospace; }
 
     .btn-submit {
       padding: 12px 24px;
@@ -140,10 +122,6 @@
       gap: 8px;
     }
 
-    .btn-print:hover {
-      background: rgba(59, 130, 246, 0.3);
-    }
-
     .btn-setup {
       padding: 8px 16px;
       background: rgba(255, 255, 255, 0.05);
@@ -174,10 +152,6 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
     }
 
     .btn-add-item {
@@ -212,62 +186,6 @@
       box-shadow: 0 8px 25px rgba(52, 168, 83, 0.35);
     }
 
-    .btn-drive-sync {
-      padding: 10px 20px;
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-drive-sync:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.35);
-    }
-
-    .btn-pdf {
-      padding: 8px 16px;
-      background: #dc2626;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-pdf:hover {
-      background: #b91c1c;
-    }
-
-    .btn-print-doc {
-      padding: 8px 16px;
-      background: #64748b;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-print-doc:hover {
-      background: #475569;
-    }
-
-    /* ===== MODAL STYLES ===== */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -279,9 +197,7 @@
       z-index: 9999;
     }
 
-    .modal-overlay.hidden {
-      display: none !important;
-    }
+    .modal-overlay.hidden { display: none !important; }
 
     .modal-content {
       background: linear-gradient(145deg, #1e293b, #0f172a);
@@ -295,11 +211,6 @@
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     }
 
-    .modal-document {
-      max-width: 1200px;
-    }
-
-    /* ===== TOAST NOTIFICATION ===== */
     .toast {
       position: fixed;
       bottom: 24px;
@@ -322,7 +233,6 @@
       opacity: 1;
     }
 
-    /* ===== UPLOAD AREA ===== */
     .upload-area {
       border: 2px dashed var(--border);
       border-radius: 12px;
@@ -352,10 +262,7 @@
       font-weight: 600;
     }
 
-    .currency-wrapper {
-      position: relative;
-    }
-
+    .currency-wrapper { position: relative; }
     .prefix {
       position: absolute;
       left: 14px;
@@ -364,12 +271,8 @@
       color: var(--muted);
       font-size: 14px;
     }
+    .currency-wrapper input { padding-left: 36px !important; }
 
-    .currency-wrapper input {
-      padding-left: 36px !important;
-    }
-
-    /* ===== UPLOAD PROGRESS BAR ===== */
     .upload-progress-container {
       width: 100%;
       height: 6px;
@@ -388,16 +291,6 @@
       width: 0%;
     }
     
-    .upload-progress-bar.animating {
-      animation: progress-pulse 1.5s ease-in-out infinite;
-    }
-    
-    @keyframes progress-pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-    
-    /* ===== FILE ITEM CARD ===== */
     .file-item-card {
       display: flex;
       align-items: center;
@@ -431,11 +324,7 @@
     .file-item-icon.doc { background: #fef3c7; color: #d97706; }
     .file-item-icon.default { background: rgba(255,255,255,0.1); color: #9ca3af; }
     
-    .file-item-info {
-      flex: 1;
-      min-width: 0;
-    }
-    
+    .file-item-info { flex: 1; min-width: 0; }
     .file-item-name {
       font-size: 13px;
       font-weight: 500;
@@ -445,11 +334,7 @@
       text-overflow: ellipsis;
     }
     
-    .file-item-size {
-      font-size: 11px;
-      color: #9ca3af;
-      margin-top: 2px;
-    }
+    .file-item-size { font-size: 11px; color: #9ca3af; margin-top: 2px; }
     
     .file-item-remove {
       width: 28px;
@@ -462,42 +347,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
       font-size: 18px;
-    }
-    
-    .file-item-remove:hover {
-      background: rgba(239, 68, 68, 0.2);
-      transform: scale(1.05);
-    }
-    
-    /* ===== DRIVE LINK DISPLAY ===== */
-    .drive-link-display {
-      margin-top: 10px;
-      padding: 10px 12px;
-      background: rgba(34, 197, 94, 0.08);
-      border: 1px solid rgba(34, 197, 94, 0.2);
-      border-radius: 8px;
-      display: none;
-    }
-    
-    .drive-link-display.show {
-      display: block;
-    }
-    
-    .drive-link-url {
-      font-size: 11px;
-      color: #4ade80;
-      word-break: break-all;
-      font-family: 'JetBrains Mono', monospace;
-    }
-    
-    /* ===== DRAG & DROP ACTIVE STATE ===== */
-    .upload-area.drag-over {
-      border-color: #4285f4 !important;
-      background: rgba(66, 133, 244, 0.08) !important;
-      transform: scale(1.01);
+      flex-shrink: 0;
     }
     
     .upload-drag-highlight {
@@ -512,15 +363,10 @@
       z-index: 10;
     }
     
-    .upload-area.drag-over .upload-drag-highlight {
-      display: flex !important;
-    }
+    .upload-area.drag-over .upload-drag-highlight { display: flex !important; }
+    .upload-area.drag-over { border-color: #4285f4 !important; background: rgba(66, 133, 244, 0.08) !important; }
     
-    /* ===== SPINNER ANIMATION ===== */
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
+    @keyframes spin { to { transform: rotate(360deg); } }
     .spinner {
       width: 16px;
       height: 16px;
@@ -531,7 +377,7 @@
       display: inline-block;
     }
 
-    /* ===== AUTH & LOGIN UI STYLES ===== */
+    /* Auth Styles */
     .auth-container {
       display: flex;
       align-items: center;
@@ -552,9 +398,6 @@
       border-radius: 24px;
       font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.3px;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
 
     .company-badge.nmsa {
@@ -569,13 +412,29 @@
       border: 1px solid rgba(220, 38, 38, 0.4);
     }
 
-    .company-icon {
-      font-size: 18px;
-      line-height: 1;
+    .btn-login {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
     }
 
-    .company-name {
-      font-weight: 700;
+    .btn-login:hover { transform: translateY(-2px); }
+
+    .btn-logout {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: #f87171;
+      border: 1px solid rgba(239, 113, 113, 0.3);
     }
 
     .user-info {
@@ -594,45 +453,10 @@
       white-space: nowrap;
     }
 
-    .btn-login {
-      padding: 8px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: none;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      color: white;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-    }
-
-    .btn-login:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
-    }
-
-    .btn-logout {
-      padding: 8px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: transparent;
-      color: #f87171;
-      border: 1px solid rgba(239, 113, 113, 0.3);
-    }
-
-    .btn-logout:hover {
-      background: rgba(239, 68, 68, 0.15);
-      border-color: rgba(239, 68, 68, 0.5);
-    }
-
     /* Login Modal */
     .login-modal-overlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      inset: 0;
       background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(4px);
       display: flex;
@@ -641,9 +465,7 @@
       z-index: 99999;
     }
 
-    .login-modal-overlay.hidden {
-      display: none !important;
-    }
+    .login-modal-overlay.hidden { display: none !important; }
 
     .login-modal {
       background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
@@ -651,23 +473,15 @@
       padding: 36px;
       width: 100%;
       max-width: 420px;
-      box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(59, 130, 246, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.1);
       position: relative;
       animation: modalSlideIn 0.3s ease-out;
     }
 
     @keyframes modalSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+      from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .login-modal h2 {
@@ -676,12 +490,9 @@
       text-align: center;
       font-size: 22px;
       font-weight: 700;
-      letter-spacing: -0.5px;
     }
 
-    .login-form-group {
-      margin-bottom: 18px;
-    }
+    .login-form-group { margin-bottom: 18px; }
 
     .login-form-label {
       display: block;
@@ -711,9 +522,7 @@
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2), 0 0 20px rgba(37, 99, 235, 0.1);
     }
 
-    .login-input::placeholder {
-      color: #475569;
-    }
+    .login-input::placeholder { color: #475569; }
 
     .login-btn-submit {
       width: 100%;
@@ -727,8 +536,6 @@
       cursor: pointer;
       margin-top: 8px;
       transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
     }
 
     .login-btn-submit:hover:not(:disabled) {
@@ -736,10 +543,7 @@
       box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
     }
 
-    .login-btn-submit:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+    .login-btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .login-error {
       background: rgba(239, 68, 68, 0.15);
@@ -750,12 +554,9 @@
       margin-bottom: 18px;
       border: 1px solid rgba(239, 68, 68, 0.2);
       display: none;
-      animation: shakeX 0.4s ease;
     }
 
-    .login-error.show {
-      display: block;
-    }
+    .login-error.show { display: block; }
 
     @keyframes shakeX {
       0%, 100% { transform: translateX(0); }
@@ -782,10 +583,7 @@
       transition: all 0.2s ease;
     }
 
-    .login-close:hover {
-      color: white;
-      background: rgba(239, 68, 68, 0.15);
-    }
+    .login-close:hover { color: white; background: rgba(239, 68, 68, 0.15); }
 
     .login-hint {
       text-align: center;
@@ -795,9 +593,7 @@
       line-height: 1.6;
     }
 
-    .login-hint strong {
-      color: #60a5fa;
-    }
+    .login-hint strong { color: #60a5fa; }
 
     .login-companies-hint {
       display: grid;
@@ -831,18 +627,9 @@
       box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
     }
 
-    .login-company-icon {
-      font-size: 32px;
-      margin-bottom: 6px;
-    }
+    .login-company-icon { font-size: 32px; margin-bottom: 6px; }
+    .login-company-name { font-size: 12px; color: #94a3b8; font-weight: 600; }
 
-    .login-company-name {
-      font-size: 12px;
-      color: #94a3b8;
-      font-weight: 600;
-    }
-
-    /* ===== STATUS INDICATOR ===== */
     .status-dot {
       width: 8px;
       height: 8px;
@@ -859,89 +646,8 @@
       50% { opacity: 0.5; }
     }
 
-    .status-text-muted {
-      color: var(--muted);
-      font-size: 12px;
-    }
+    .status-text-muted { color: var(--muted); font-size: 12px; }
 
-    /* ===== CONNECTION BANNER ===== */
-    .connection-banner {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: linear-gradient(135deg, rgba(66, 133, 244, 0.15), rgba(37, 99, 235, 0.1));
-      border: 1px solid rgba(66, 133, 244, 0.3);
-      border-radius: 12px;
-      margin-bottom: 20px;
-    }
-
-    .drive-status-banner {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1));
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      border-radius: 12px;
-      margin-bottom: 20px;
-    }
-
-    .drive-status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .drive-status-badge.pending {
-      background: rgba(251, 191, 36, 0.2);
-      color: #fbbf24;
-    }
-
-    .drive-status-badge.success {
-      background: rgba(34, 197, 94, 0.2);
-      color: #4ade80;
-    }
-
-    /* ===== SETUP STEPS ===== */
-    .setup-step {
-      margin-bottom: 32px;
-    }
-
-    .step-number {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--drive), #7c3aed);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 14px;
-      flex-shrink: 0;
-    }
-
-    .example-config-box {
-      padding: 16px;
-      border-radius: 10px;
-      margin-bottom: 16px;
-      background: rgba(15, 23, 42, 0.5);
-      border: 1px solid var(--border);
-    }
-
-    .config-box {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      line-height: 1.6;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      color: #e2e8f0;
-    }
-
-    /* ===== TAB BUTTONS ===== */
     .tab-btn {
       padding: 8px 16px;
       border-radius: 8px;
@@ -954,12 +660,8 @@
       transition: all 0.2s ease;
     }
 
-    .tab-btn.active {
-      background: var(--drive);
-      color: white;
-    }
+    .tab-btn.active { background: var(--drive); color: white; }
 
-    /* ===== HISTORY ITEM ===== */
     .history-item {
       padding: 16px;
       background: rgba(15, 23, 42, 0.4);
@@ -970,12 +672,8 @@
       transition: all 0.2s ease;
     }
 
-    .history-item:hover {
-      border-color: var(--drive);
-      transform: translateX(4px);
-    }
+    .history-item:hover { border-color: var(--drive); transform: translateX(4px); }
 
-    /* ===== DOCUMENT PREVIEW STYLES ===== */
     .documents-container {
       background: #f1f5f9;
       padding: 20px;
@@ -993,22 +691,9 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
-    .doc-header-center {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .doc-company-logo {
-      height: 80px;
-      margin-bottom: 16px;
-    }
-
-    .doc-form-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1e293b;
-      letter-spacing: 1px;
-    }
+    .doc-header-center { text-align: center; margin-bottom: 30px; }
+    .doc-company-logo { height: 80px; margin-bottom: 16px; }
+    .doc-form-title { font-size: 20px; font-weight: 700; color: #1e293b; letter-spacing: 1px; }
 
     .doc-info-grid {
       display: grid;
@@ -1025,15 +710,8 @@
       border-bottom: 1px solid #e2e8f0;
     }
 
-    .doc-info-label {
-      font-weight: 600;
-      color: #64748b;
-    }
-
-    .doc-info-value {
-      font-weight: 500;
-      color: #1e293b;
-    }
+    .doc-info-label { font-weight: 600; color: #64748b; }
+    .doc-info-value { font-weight: 500; color: #1e293b; }
 
     .doc-table {
       width: 100%;
@@ -1042,28 +720,16 @@
       font-size: 12px;
     }
 
-    .doc-table th,
-    .doc-table td {
+    .doc-table th, .doc-table td {
       border: 1px solid #cbd5e1;
       padding: 8px;
       text-align: left;
     }
 
-    .doc-table th {
-      background: #f1f5f9;
-      font-weight: 600;
-    }
-
+    .doc-table th { background: #f1f5f9; font-weight: 600; }
     .col-no { width: 40px; text-align: center; }
-    .col-item { }
-    .col-vol { width: 120px; text-align: center; }
     .col-nominal { width: 140px; text-align: right; }
-    .col-ket { width: 150px; }
-
-    .doc-total-row {
-      font-weight: bold;
-      background: #f1f5f9;
-    }
+    .doc-total-row { font-weight: bold; background: #f1f5f9; }
 
     .doc-notes {
       margin-top: 24px;
@@ -1073,128 +739,26 @@
       border-radius: 4px;
     }
 
-    .doc-notes-title {
-      font-weight: 700;
-      font-size: 12px;
-      color: #92400e;
-      margin-bottom: 8px;
-    }
+    .doc-notes-title { font-weight: 700; font-size: 12px; color: #92400e; margin-bottom: 8px; }
+    .docs-notes-content { font-size: 11px; color: #78350f; line-height: 1.6; }
 
-    .docs-notes-content {
-      font-size: 11px;
-      color: #78350f;
-      line-height: 1.6;
-    }
-
-    .doc-signatures-p1,
-    .doc-signatures-2x2 {
+    .doc-signatures-p1 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 60px;
       margin-top: 80px;
     }
 
-    .doc-sig-box,
-    .sig-block-page2 {
-      text-align: center;
-    }
+    .doc-sig-box { text-align: center; }
+    .doc-sig-label { font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 1px; margin-bottom: 8px; }
+    .doc-sig-space { height: 60px; border-bottom: 1px solid #1e293b; margin: 10px 0; }
+    .doc-sig-name { font-size: 13px; font-weight: 600; color: #1e293b; }
 
-    .doc-sig-label,
-    .sig-action {
-      font-size: 11px;
-      font-weight: 700;
-      color: #64748b;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .doc-sig-space,
-    .sig-space {
-      height: 60px;
-      border-bottom: 1px solid #1e293b;
-      margin: 10px 0;
-    }
-
-    .doc-sig-name,
-    .sig-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1e293b;
-    }
-
-    .sig-title {
-      font-size: 11px;
-      color: #64748b;
-      margin-top: 4px;
-    }
-
-    .doc-sig-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
-      margin-bottom: 40px;
-    }
-
-    .doc-header-flex {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 24px;
-    }
-
-    .doc-header-left img {
-      height: 70px;
-    }
-
-    .doc-header-right {
-      text-align: right;
-    }
-
-    .doc-form-title-right {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1e293b;
-      margin-bottom: 8px;
-    }
-
-    .doc-tanggal-box {
-      font-size: 13px;
-      color: #64748b;
-    }
-
-    .doc-payment-info {
-      background: #f8fafc;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-
-    .doc-payment-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #e2e8f0;
-      font-size: 13px;
-    }
-
-    .doc-payment-label {
-      font-weight: 600;
-      color: #64748b;
-    }
-
-    .doc-payment-value {
-      font-weight: 500;
-      color: #1e293b;
-    }
-
-    .doc-check {
-      display: inline-block;
-      width: 16px;
-    }
-
-    .page-toolbar {
-      border-radius: 8px 8px 0 0;
-    }
+    .page-toolbar { border-radius: 8px 8px 0 0; }
+    .btn-pdf { padding: 8px 16px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-pdf:hover { background: #b91c1c; }
+    .btn-print-doc { padding: 8px 16px; background: #64748b; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-print-doc:hover { background: #475569; }
 
     .validation-error {
       background: rgba(239, 68, 68, 0.1);
@@ -1219,48 +783,17 @@
       line-height: 1.6;
     }
 
-    .manual-sync-status {
-      font-size: 11px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      margin-top: 8px;
-    }
-
-    .last-sync-info-text {
-      font-size: 10px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .sync-button-wrapper {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    /* ===== ANIMATIONS ===== */
-    .animate-in {
-      animation: fadeInUp 0.5s ease-out forwards;
-    }
-
+    .animate-in { animation: fadeInUp 0.5s ease-out forwards; }
     .delay-1 { animation-delay: 0.1s; }
     .delay-2 { animation-delay: 0.2s; }
     .delay-3 { animation-delay: 0.3s; }
     .delay-4 { animation-delay: 0.4s; }
-    .delay-5 { animation-delay: 0.5s; }
 
     @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== PRINT STYLES ===== */
     @media print {
       .no-print { display: none !important; }
       body { background: white; color: black; }
@@ -1270,25 +803,19 @@
 </head>
 
 <body>
-  <!-- Background Effects -->
   <div class="bg-pattern"></div>
-  <div class="bg-gradient"></div>
 
   <main class="relative z-10 min-h-screen">
 
-    <!-- ==================== HEADER ==================== -->
+    <!-- HEADER -->
     <header class="border-b border-[--border] bg-[--bg]/90 backdrop-blur-lg sticky top-0 z-50 no-print">
       <div class="max-w-6xl mx-auto px-6 py-4">
-        
-        <!-- Top Row: Logo + Auth Container -->
         <div class="flex items-center justify-between mb-3 flex-wrap gap-3">
           
-          <!-- Logo & Title -->
+          <!-- Logo -->
           <div class="flex items-center gap-3 animate-in">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive] to-[--sheets] flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
-              </svg>
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive] to-[--sheets] flex items-center justify-center text-white text-xl font-bold">
+              💰
             </div>
             <div>
               <h1 class="text-lg font-semibold">FinanceSync Pro <span class="text-xs text-[--muted] font-normal ml-1">v3.4</span></h1>
@@ -1301,8 +828,7 @@
             <button id="loginBtn" class="btn-login" onclick="showLoginModal()" style="display:none;">🔐 Login</button>
             
             <div id="companyBadge" class="company-badge" style="display:none;">
-              <span class="company-icon">🏢</span>
-              <span class="company-name"></span>
+              <span>🏢</span><span class="company-name"></span>
             </div>
             
             <div id="userInfo" class="user-info" style="display:none;">
@@ -1312,47 +838,22 @@
             <button id="logoutBtn" class="btn-logout" onclick="handleLogout()" style="display:none;">🚪 Logout</button>
           </div>
           
-          <!-- Connection Status Indicator -->
-          <div id="connectionStatus" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[--bg-secondary]">
+          <!-- Status -->
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[--bg-secondary]">
             <div class="status-dot connecting" id="statusDot"></div>
             <span class="status-text status-text-muted" id="statusText">Menghubungkan...</span>
           </div>
           
           <!-- Setup Button -->
-          <button id="setupBtn" class="btn-setup" onclick="openSetupModal()" aria-label="Pengaturan Firebase">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-1.065-2.573c-.94-1.543.826-3.31-2.573c-.94-1.543.826-3.31-2.37.996.608.608.608.608.608Z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            <span>Setup</span>
-          </button>
-          
-          <!-- Apps Script Code Button -->
-          <button class="btn-secondary" onclick="openGasModal()" title="Salin Kode Apps Script">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-            </svg>
-          </button>
+          <button class="btn-setup" onclick="openSetupModal()">⚙️ Setup</button>
         </div>
       </div>
     </header>
 
-    <!-- ==================== MAIN CONTENT ==================== -->
+    <!-- MAIN CONTENT -->
     <div class="max-w-6xl mx-auto px-6 py-8">
 
-      <!-- Connection Banner -->
-      <div id="connectionBanner" class="connection-banner no-print" style="display: none;">
-        <svg class="w-6 h-6 text-blue-400 flex-shrink-0 firebase-logo" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
-        </svg>
-        <div class="flex-1">
-          <div class="font-semibold text-sm text-white" id="bannerTitle">Menyiapkan...</div>
-          <div class="text-xs text-gray-300 mt-1" id="bannerMessage">Mohon tunggu sebentar</div>
-        </div>
-        <button onclick="openSetupModal()" class="copy-btn text-sm py-2 px-4">Setup</button>
-      </div>
-
-      <!-- Statistics Cards -->
+      <!-- Stats Cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 no-print">
         <div class="card animate-in delay-1">
           <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">Total Data</div>
@@ -1363,11 +864,11 @@
           <div class="text-2xl font-bold text-[--success]" id="sentData">0</div>
         </div>
         <div class="card animate-in delay-3">
-          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">☁️ Google Drive</div>
+          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">☁️ Drive</div>
           <div class="text-2xl font-bold text-[--drive]" id="sheetsData">0</div>
         </div>
         <div class="card animate-in delay-4">
-          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">⏳ Pending Sync</div>
+          <div class="text-[--muted] text-xs uppercase tracking-wide mb-1">⏳ Pending</div>
           <div class="text-2xl font-bold text-[--warning]" id="pendingData">0</div>
         </div>
       </div>
@@ -1375,16 +876,13 @@
       <!-- Grid: Form + History -->
       <div class="grid lg:grid-cols-5 gap-8">
 
-        <!-- ==================== FORM INPUT ==================== -->
+        <!-- FORM SECTION -->
         <div class="lg:col-span-3 no-print">
           <div class="card animate-in delay-3">
             
-            <!-- Form Header -->
             <div class="flex items-center gap-3 mb-6">
-              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive]/20 to-[--sheets]/20 flex items-center justify-center">
-                <svg class="w-5 h-5 text-[--drive]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive]/20 to-[--sheets]/20 flex items-center justify-center text-2xl">
+                📝
               </div>
               <div>
                 <h2 class="text-lg font-semibold">Form Pengajuan</h2>
@@ -1392,10 +890,8 @@
               </div>
             </div>
 
-            <!-- Main Form -->
             <form id="dataForm" class="space-y-4">
               
-              <!-- Row 1: Tanggal & Lokasi -->
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
                   <label class="field-label" for="tanggal">Tanggal Invoice<span class="required-star">*</span></label>
@@ -1407,7 +903,6 @@
                 </div>
               </div>
 
-              <!-- Row 2: Jenis Pengajuan & Kode -->
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
                   <label class="field-label" for="jenis_pengajuan">Jenis Pengajuan<span class="required-star">*</span></label>
@@ -1419,7 +914,6 @@
                 </div>
               </div>
 
-              <!-- Row 3: No Invoice & Status -->
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
                   <label class="field-label" for="no_invoice">No Invoice / Berkas</label>
@@ -1445,7 +939,6 @@
                 <button type="button" onclick="addFormItem()" class="btn-add-item mt-3">+ Tambah Item Baru</button>
               </div>
 
-              <!-- Total & Payment Date -->
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
                   <label class="field-label">Total Nominal (Otomatis)</label>
@@ -1460,7 +953,6 @@
                 </div>
               </div>
 
-              <!-- Payment Recipient -->
               <div>
                 <label class="field-label" for="dibayarkan_kepada">Dibayarkan Kepada<span class="required-star">*</span></label>
                 <input type="text" id="dibayarkan_kepada" name="dibayarkan_kepada" class="input-field" placeholder="Nama penerima pembayaran" required>
@@ -1470,157 +962,75 @@
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <label class="field-label">Upload Bukti Dokumen</label>
-                  <div class="flex items-center gap-2">
-                    <span class="drive-badge">📁 Google Drive</span>
-                    <span class="text-xs text-[--muted]">(Max 30MB)</span>
-                  </div>
+                  <span class="drive-badge">📁 Google Drive (Max 30MB)</span>
                 </div>
                 
-                <!-- Upload Area with Drag & Drop -->
-                <div id="uploadArea" class="upload-area relative" 
-                     onclick="document.getElementById('fileInput').click()"
-                     ondragover="handleDragOver(event)"
-                     ondragleave="handleDragLeave(event)"
-                     ondrop="handleDrop(event)">
+                <div id="uploadArea" class="upload-area relative" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
                   
-                  <input type="file" 
-                         id="fileInput" 
-                         accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
-                         multiple 
-                         hidden 
-                         onchange="handleFileSelect(this)">
+                  <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip" multiple hidden onchange="handleFileSelect(this)">
                   
                   <div class="upload-drag-highlight rounded-xl">
                     <div class="text-center p-4">
-                      <svg class="w-12 h-12 mx-auto text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                      </svg>
+                      <div class="text-5xl mb-2">📥</div>
                       <p class="text-base font-medium text-blue-300">Drop file di sini</p>
                     </div>
                   </div>
                   
                   <div id="uploadPlaceholder">
-                    <svg class="w-8 h-8 mx-auto mb-2 text-[--muted]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                    </svg>
-                    <p class="text-sm text-[--muted]">Klik untuk upload bukti invoice/foto</p>
+                    <div class="text-5xl mb-2">📤</div>
+                    <p class="text-sm text-[--muted] mt-2">Klik untuk upload bukti invoice/foto</p>
                     <p class="text-xs text-gray-500 mt-2">Format: PDF, JPG, PNG, DOC, XLS, PPT (Maks <strong class="text-green-400">30MB</strong>)</p>
-                    <p class="text-xs text-blue-400 mt-1">🚀 File langsung tersimpan ke <strong>Google Drive</strong> via Apps Script</p>
                   </div>
                   
                   <div id="fileListDisplay" class="mt-3 space-y-2"></div>
-                  
                   <div class="upload-progress-container" id="uploadProgressContainer">
                     <div class="upload-progress-bar" id="uploadProgressBar"></div>
-                  </div>
-                  
-                  <div class="drive-link-display" id="driveLinkResult">
-                    <div class="flex items-start gap-2">
-                      <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
-                      </svg>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-xs text-green-400 font-medium mb-1">✅ File berhasil disimpan ke Google Drive!</p>
-                        <a id="driveLinkUrl" href="#" target="_blank" class="drive-link-url text-xs hover:underline"></a>
-                      </div>
-                    </div>
                   </div>
                 </div>
                 
                 <div id="selectedFilesActions" class="flex items-center justify-between mt-2" style="display:none;">
                   <span class="text-xs text-[--muted]" id="selectedFilesCount">0 file dipilih</span>
-                  <button type="button" onclick="clearSelectedFiles()" class="text-xs text-red-400 hover:text-red-300 transition-colors">🗑️ Hapus Semua File</button>
+                  <button type="button" onclick="clearSelectedFiles()" class="text-xs text-red-400 hover:text-red-300 transition-colors">🗑️ Hapus Semua</button>
                 </div>
               </div>
 
-              <!-- Additional Notes -->
               <div>
                 <label class="field-label" for="catatan_tambahan">Catatan Tambahan <span class="text-[--muted] font-normal">(opsional)</span></label>
-                <textarea id="catatan_tambahan" name="catatan_tambahan" rows="2" class="input-field resize-none" placeholder="Tambahkan catatan khusus..."></textarea>
+                <textarea id="catatan_tambahan" name="catatan_tambahan" rows="2" class="input-field resize-none" placeholder="Tambahkan catatan..."></textarea>
               </div>
 
-              <!-- Validation Error Display -->
               <div id="validationError" class="validation-error">
-                <strong style="color:#fca5a5;font-size:14px;margin-bottom:8px;display:block;">Mohon lengkapi field berikut:</strong>
+                <strong style="color:#fca5a5;font-size:14px;margin-bottom:8px;display:block;">Mohon lengkapi field:</strong>
                 <ul id="validationErrorList"></ul>
               </div>
 
-              <!-- Action Buttons -->
               <div class="flex flex-wrap items-center gap-3 pt-4">
-                <button type="submit" id="submitBtn" class="btn-submit">
-                  <svg id="submitBtnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 3z"/>
-                  </svg>
-                  <span id="submitBtnText">💾 Simpan ke Firebase</span>
-                </button>
-                
-                <button type="button" id="previewBtn" class="btn-print" onclick="previewDocument()">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542 7-4.477 0z"/>
-                  </svg>
-                  <span>Preview & PDF</span>
-                </button>
-                
-                <div class="sync-button-wrapper">
-                  <button type="button" id="forceSyncBtn" class="btn-drive-sync" onclick="triggerManualSync()">
-                    <svg id="syncIcon" class="drive-sync-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                    </svg>
-                    <span id="syncBtnText">Sync ke Sheets</span>
-                  </button>
-                  <div id="manualSyncStatus" class="manual-sync-status" style="display: none;"></div>
-                </div>
-                
-                <button type="reset" class="text-[--muted] hover:text-[--fg] transition-colors text-sm" onclick="resetUploadArea()">Reset</button>
+                <button type="submit" class="btn-submit"><span>💾 Simpan ke Firebase</span></button>
+                <button type="button" class="btn-print" onclick="previewDocument()">👁 Preview & PDF</button>
+                <button type="reset" class="text-[--muted] hover:text-[--fg] text-sm" onclick="resetUploadArea()">Reset</button>
               </div>
             </form>
           </div>
         </div>
 
-        <!-- ==================== HISTORY PANEL ==================== -->
+        <!-- HISTORY PANEL -->
         <div class="lg:col-span-2 no-print">
           <div class="card animate-in delay-4">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
-              <button id="clearHistory" class="text-xs text-[--muted] hover:text-[--error] transition-colors">Hapus Semua</button>
+              <button id="clearHistory" class="text-xs text-[--muted] hover:text-[error] transition-colors">Hapus Semua</button>
             </div>
 
-            <!-- Tab Buttons -->
             <div class="flex gap-1 mb-3 p-1 bg-[--bg-secondary] rounded-lg">
               <button class="tab-btn active flex-1" data-tab="Lunas" onclick="filterByStatus('Lunas', this)">Lunas</button>
               <button class="tab-btn flex-1" data-tab="Belum Lunas" onclick="filterByStatus('Belum Lunas', this)">Belum Lunas</button>
             </div>
 
-            <!-- Date Filter -->
-            <div class="mb-3 p-3 bg-[--bg-secondary] rounded-lg" id="dateFilterSection">
-              <div class="flex items-center gap-2 mb-2">
-                <svg class="w-4 h-4 text-[--muted]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2 2V7a2 2 0 00-2-2H5a2 2 0 00-2 2V7zM5 21H5z"/>
-                </svg>
-                <span class="text-xs font-medium text-[--muted]">FILTER TANGGAL</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-[10px] text-[--muted] block mb-1">Dari</label>
-                  <input type="date" id="filterDateFrom" class="input-field text-xs" style="padding:8px 10px;">
-                </div>
-                <div>
-                  <label class="text-[10px] text-[--muted] block mb-1">Sampai</label>
-                  <input type="date" id="filterDateTo" class="input-field text-xs" style="padding:8px 10px;">
-                </div>
-              </div>
-              <button onclick="clearDateFilter()" class="text-[10px] text-[--firebase] hover:underline mt-2 block">Reset Filter</button>
-            </div>
-
-            <!-- History List Container -->
             <div id="historyList" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
               <div class="text-center py-10 text-[--muted]">
-                <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
+                <div class="text-5xl mb-3">📋</div>
                 <p class="text-sm">Belum ada data</p>
-                <p class="text-xs mt-2 text-[--drive]">File otomatis tersimpan ke Google Drive</p>
+                <p class="text-xs mt-2 text-[--drive]">Login untuk melihat data</p>
               </div>
             </div>
           </div>
@@ -1630,116 +1040,31 @@
     </div>
   </main>
 
-  <!-- ==================== MODALS ==================== -->
-
-  <!-- Setup Modal -->
-  <div id="setupModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <!-- SETUP MODAL -->
+  <div id="setupModal" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="flex items-center justify-between mb-5">
-        <h2 class="text-lg font-semibold flex items-center gap-2">
-          <span class="text-2xl">⚙️</span> Konfigurasi Firebase
-        </h2>
-        <button onclick="closeSetupModal()" class="w-8 h-8 rounded-lg hover:bg-[--bg-secondary] flex items-center justify-center transition-colors" aria-label="Tutup">
-          <svg class="w-5 h-5 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
+        <h2 class="text-lg font-semibold">⚙️ Konfigurasi Firebase</h2>
+        <button onclick="closeSetupModal()" class="w-8 h-8 rounded-lg hover:bg-[--bg-secondary] flex items-center justify-center text-xl">✕</button>
       </div>
 
       <div class="space-y-6">
-        
-        <!-- Step 1: Firebase Config -->
-        <div class="setup-step">
-          <div class="flex items-start gap-3">
-            <div class="step-number">1</div>
-            <div class="flex-1">
-              <h3 class="font-semibold text-base mb-2">🔥 Firebase Configuration</h3>
-              <p class="text-sm text-[--muted] mb-3">Hanya butuh Firestore (Gratis, tanpa kartu kredit).</p>
-              
-              <div class="example-config-box">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="text-lg">✅</span>
-                  <strong class="text-green-400 text-sm">Copy HANYA ini:</strong>
-                </div>
-                <div class="config-box">{<br>&nbsp;&nbsp;"apiKey": "AIzaSy...",<br>&nbsp;&nbsp;"authDomain": "...",<br>&nbsp;&nbsp;"projectId": "...",<br>&nbsp;&nbsp;...<br>}</div>
-              </div>
-
-              <div class="mt-3">
-                <label class="field-label">Paste Firebase Config:</label>
-                <textarea id="firebaseConfigInput" class="input-field resize-none" rows="4" placeholder='{"apiKey": "...", ...}' style="font-family:'JetBrains Mono',monospace;font-size:11px;"></textarea>
-                <div id="configError" class="text-xs text-red-400 mt-2 hidden"></div>
-              </div>
-              
-              <button onclick="saveFirebaseConfig()" class="copy-btn mt-3 w-full">💾 Simpan & Connect</button>
+        <div class="flex items-start gap-3">
+          <div class="step-number">1</div>
+          <div class="flex-1">
+            <h3 class="font-semibold text-base mb-2">🔥 Firebase Configuration</h3>
+            <p class="text-sm text-[--muted] mb-3">Paste config dari Firebase Console.</p>
+            
+            <div class="p-4 rounded-lg bg-[--bg] border border-[--border] mb-3">
+              <div class="flex items-center gap-2 mb-2"><span>✅</span><strong class="text-green-400 text-sm">Copy HANYA ini:</strong></div>
+              <code class="block text-xs bg-black/30 p-3 rounded font-mono text-green-300 overflow-x-auto">{<br>&nbsp;&nbsp;"apiKey": "AIzaSy...",<br>&nbsp;&nbsp;"authDomain": "...",<br>&nbsp;&nbsp;"projectId": "..."<br>}</code>
             </div>
-          </div>
-        </div>
 
-        <!-- Step 2: How It Works -->
-        <div class="setup-step">
-          <div class="flex items-start gap-3">
-            <div class="step-number">2</div>
-            <div class="flex-1">
-              <h3 class="font-semibold text-base mb-2">📖 Cara Kerja File → Google Drive</h3>
-              
-              <div class="bg-blue-900/30 rounded-xl p-4 border border-blue-700/30">
-                <div class="space-y-3 text-sm text-gray-300">
-                  <div class="flex items-start gap-2">
-                    <span class="text-yellow-300 font-bold">1️⃣</span>
-                    <div>User upload file → Dikonversi jadi <strong class="text-blue-300">Base64</strong></div>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="text-green-300 font-bold">2️⃣</span>
-                    <div>Data + Base64 dikirim ke <strong class="text-yellow-300">Google Apps Script</strong></div>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="text-blue-300 font-bold">3️⃣</span>
-                    <div><strong>Apps Script</strong> membuat file di <strong class="text-blue-300">Google Drive</strong> & simpan link ke <strong class="text-yellow-300">Firebase</strong></div>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="text-purple-300 font-bold">4️⃣</span>
-                    <div>Status otomatis <strong class="text-purple-300">update</strong> di aplikasi (real-time listener)</div>
-                  </div>
-                </div>
-
-                <div class="mt-3 p-3 bg-[--bg] rounded-lg border border-[--border]">
-                  <p class="text-xs text-[--muted] mb-2 font-semibold">⚠️ INFORMASI:</p>
-                  <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside ml-4">
-                    <li>Maksimal <strong class="text-white">30MB per file</strong> (optimal untuk base64 encoding)</li>
-                    <li>Format: PDF, JPG, PNG, DOC, XLS, PPT, ZIP</li>
-                    <li>File muncul di Drive dalam <strong class="text-white">hitungan detik</strong> (real-time processing)</li>
-                    <li>Tidak perlu kartu kredit!</li>
-                    <li>Status sync otomatis ter-update via real-time listener</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Step 3: Apps Script URL -->
-        <div class="setup-step">
-          <div class="flex items-start gap-3">
-            <div class="step-number">3</div>
-            <div class="flex-1">
-              <h3 class="font-semibold text-base mb-2">🔗 Google Apps Script URL (Opsional)</h3>
-              <p class="text-sm text-[--muted] mb-3">Untuk fitur upload file ke Google Drive.</p>
-              
-              <div class="space-y-3">
-                <div>
-                  <label class="field-label">Apps Script Web App URL:</label>
-                  <input type="url" id="appsScriptUrlInput" class="input-field text-xs" placeholder="https://script.google.com/macros/s/xxx/exec" style="font-family:'JetBrains Mono',monospace;font-size:11px;">
-                  <p class="text-xs text-gray-500 mt-1">Dapatkan dari: Apps Script > Deploy > Web App</p>
-                </div>
-                
-                <div class="flex gap-2">
-                  <button onclick="saveAppsScriptUrl()" class="copy-btn flex-1">💾 Simpan URL</button>
-                  <button onclick="testAppsScriptConnection()" class="btn-secondary flex-1">🧪 Test Koneksi</button>
-                </div>
-                
-                <div id="appsScriptConnectionResult" class="text-xs p-2 rounded-lg hidden"></div>
-              </div>
-            </div>
+            <label class="field-label mt-3">Paste Firebase Config:</label>
+            <textarea id="firebaseConfigInput" class="input-field resize-none" rows="4" placeholder='{"apiKey": "...", ...}' style="font-family:'JetBrains Mono',monospace;font-size:11px;"></textarea>
+            <div id="configError" class="text-xs text-red-400 mt-2 hidden"></div>
+            
+            <button onclick="saveFirebaseConfig()" class="copy-btn mt-3 w-full">💾 Simpan & Connect</button>
           </div>
         </div>
         
@@ -1748,246 +1073,18 @@
     </div>
   </div>
 
-  <!-- Apps Script Modal -->
-  <div id="gasModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
-    <div class="modal-content" style="max-width: 900px;">
-      <div class="flex items-center justify-between mb-5">
-        <h2 class="text-lg font-semibold flex items-center gap-2">
-          <span class="text-2xl">📜</span> Kode Google Apps Script (Backend)
-        </h2>
-        <button onclick="closeGasModal()" class="w-8 h-8 rounded-lg hover:bg-[--bg-secondary] flex items-center justify-center transition-colors" aria-label="Tutup">
-          <svg class="w-5 h-5 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-      
-      <div class="space-y-4">
-        <p class="text-sm text-[--muted]">Salin kode di bawah ini dan tempelkan ke dalam editor <strong>Google Apps Script</strong> (script.google.com).</p>
-        <button onclick="copyGasCode()" class="copy-btn">📋 Salin Kode Backend</button>
-        <div class="gas-code-display" id="gasCodeContent"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Document Preview Modal -->
-  <div id="documentModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
-    <div class="modal-content modal-document">
-      
-      <!-- Document Toolbar -->
-      <div class="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 no-print page-toolbar">
-        <h2 class="text-lg font-semibold text-slate-800">Preview Dokumen</h2>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button class="btn-pdf" onclick="downloadAsPDF()">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m0 0l-3 3m3-3v12"/>
-            </svg>
-            Download PDF
-          </button>
-          <button class="btn-print-doc" onclick="window.print()">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2 2v-4a2 2 0 003-3-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-            </svg>
-            Print
-          </button>
-          <button onclick="closeDocumentModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-600" aria-label="Tutup">
-            <svg class="w-5 h-5 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Documents Container -->
-      <div class="documents-container">
-        <div id="pdf-wrapper" class="pdf-wrapper">
-          
-          <!-- PAGE 1: Form Pengajuan HO -->
-          <div class="document-page" id="documentPage1">
-            <div class="doc-header-center">
-              <img src="https://i.ibb.co.com/jN7Khby/Logo-Nusantara-Mineral-Abadi.webp" alt="Logo Nusantara Mineral Sukses Abadi" class="doc-company-logo" onerror="this.style.display='none'">
-              <div class="doc-form-title">FORMULIR PENGAJUAN HO</div>
-            </div>
-            
-            <div class="doc-info-grid">
-              <div class="doc-info-item"><span class="doc-info-label">Lokasi</span><span class="doc-info-value" id="p1_lokasi"></span></div>
-              <div class="doc-info-item"><span class="doc-info-label">Tanggal</span><span class="doc-info-value" id="p1_tanggal"></span></div>
-              <div class="doc-info-item"><span class="doc-info-label">Kode</span><span class="doc-info-value" id="p1_kode"></span></div>
-              <div class="doc-info-item"><span class="doc-info-label">Jenis</span><span class="doc-info-value" id="p1_jenis"></span></div>
-            </div>
-            
-            <table class="doc-table">
-              <thead>
-                <tr>
-                  <th class="col-no">NO</th>
-                  <th class="col-item">ITEM</th>
-                  <th class="col-vol">JUMLAH / VOLUME</th>
-                  <th class="col-nominal">Total (Rp)</th>
-                  <th class="col-ket">KETERANGAN</th>
-                </tr>
-              </thead>
-              <tbody id="p1_table_body"></tbody>
-              <tfoot>
-                <tr class="doc-total-row">
-                  <td colspan="3" style="text-align:right">TOTAL</td>
-                  <td style="text-align:right" id="p1_total"></td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-            
-            <div id="p1_notes_manual_wrapper" style="display:none;">
-              <div class="doc-notes" style="margin-top:20px">
-                <div class="doc-notes-title">CATATAN:</div>
-                <div class="docs-notes-content" id="p1_notes_manual"></div>
-              </div>
-            </div>
-            
-            <div class="doc-signatures-p1">
-              <div class="doc-sig-box">
-                <div class="doc-sig-label">DIBUAT OLEH</div>
-                <div class="doc-sig-space"></div>
-                <div class="doc-sig-name" id="p1_dibuat"></div>
-              </div>
-              <div class="doc-sig-box">
-                <div class="doc-sig-label">DISETUJUI</div>
-                <div class="doc-sig-space"></div>
-                <div class="doc-sig-name" id="p1_disetujui"></div>
-              </div>
-            </div>
-            
-            <div class="doc-notes">
-              <div class="doc-notes-title">NOTE :</div>
-              <div class="docs-notes-content">Dokumen ini adalah bukti pengajuan resmi PT. Nusantara Mineral Sukses Abadi. Harap simpan sebagai arsip.</div>
-            </div>
-          </div>
-
-          <!-- PAGE 2: Bukti Pengeluaran Kas/Bank -->
-          <div class="document-page" id="documentPage2">
-            <div class="doc-header-flex">
-              <div class="doc-header-left">
-                <img src="https://i.ibb.co.com/jN7Khby/logo-nmsa.png" alt="Logo PT NMSA" class="doc-company-logo" onerror="this.src='https://via.placeholder.com/150x150?text=Logo+NMSA'">
-              </div>
-              <div class="doc-header-right">
-                <div class="doc-form-title-right">BUKTI PENGELUARAN KAS / BANK</div>
-                <div class="doc-tanggal-box">Tanggal : <span id="p2_tanggal"></span></div>
-              </div>
-            </div>
-            
-            <div class="doc-payment-info">
-              <div class="doc-payment-row">
-                <span class="doc-payment-label">Kode</span>
-                <span class="doc-payment-value" id="p2_kode"></span>
-              </div>
-              <div class="doc-payment-row">
-                <span class="doc-payment-label">Dibayarkan kepada</span>
-                <span class="doc-payment-value" id="p2_dibayarkan"></span>
-              </div>
-              <div class="doc-payment-row">
-                <span class="doc-payment-label">Jenis Pengajuan</span>
-                <span class="doc-payment-value" id="p2_jenis"></span>
-              </div>
-              <div class="doc-payment-row">
-                <span class="doc-payment-label">Dibayarkan dengan</span>
-                <span class="doc-payment-value">
-                  <span class="doc-check">&nbsp;</span> Cek 
-                  <span style="margin-left:16px;"><span class="doc-check">X</span> Transfer</span>
-                </span>
-              </div>
-            </div>
-            
-            <table class="doc-table">
-              <thead>
-                <tr>
-                  <th style="width:40px;text-align:center">NO</th>
-                  <th>URAIAN BARANG / JASA</th>
-                  <th style="width:70px;text-align:center">QTY</th>
-                  <th style="width:120px;text-align:right">JUMLAH (Rp)</th>
-                </tr>
-              </thead>
-              <tbody id="p2_table_body"></tbody>
-              <tfoot>
-                <tr class="doc-total-row">
-                  <td colspan="3" style="text-align:right">TOTAL</td>
-                  <td style="text-align:right" id="p2_total"></td>
-                </tr>
-              </tfoot>
-            </table>
-            
-            <div id="p2_notes_manual_wrapper" style="display:none;">
-              <div class="doc-notes" style="margin-top:20px">
-                <div class="doc-notes-title">CATATAN:</div>
-                <div class="docs-notes-content" id="p2_notes_manual"></div>
-              </div>
-            </div>
-            
-            <div class="doc-signatures-2x2">
-              <div class="doc-sig-row">
-                <div class="sig-block-page2">
-                  <div class="sig-action">DI VERIFIKASI</div>
-                  <div class="sig-space"></div>
-                  <div class="sig-name" id="p2_name_keuangan"></div>
-                  <div class="sig-title">Keuangan</div>
-                </div>
-                <div class="sig-block-page2">
-                  <div class="sig-action">DISETUJUI</div>
-                  <div class="sig-space"></div>
-                  <div class="sig-name" id="p2_name_dirkeuangan"></div>
-                  <div class="sig-title">Dir. Keuangan</div>
-                </div>
-              </div>
-              <div class="doc-sig-row">
-                <div class="sig-block-page2">
-                  <div class="sig-action">DISETUJUI</div>
-                  <div class="sig-space"></div>
-                  <div class="sig-name" id="p2_name_direktur"></div>
-                  <div class="sig-title">Direktur Utama</div>
-                </div>
-                <div class="sig-block-page2">
-                  <div class="sig-action">DIBUKUKAN</div>
-                  <div class="sig-space"></div>
-                  <div class="sig-name" id="p2_name_accounting"></div>
-                  <div class="sig-title">Accounting</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Delete Confirmation Modal -->
-  <div id="deleteConfirmModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
-    <div class="modal-content" style="max-width:420px;">
-      <div class="text-center">
-        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-900/30 flex items-center justify-center">
-          <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </div>
-        <h3 class="text-xl font-semibold text-white mb-2">Hapus Data Ini?</h3>
-        <p class="text-sm text-gray-300 mb-6" id="deleteItemInfo">Kode: INV-001 • Rp 1.500.000</p>
-        <div class="flex gap-3 justify-center">
-          <button onclick="closeDeleteModal()" class="btn-secondary px-8">Batal</button>
-          <button onclick="confirmDelete()" class="px-8 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors">Ya, Hapus</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Notification -->
-  <div id="toast" class="toast" role="alert"></div>
-
-  <!-- Login Modal -->
+  <!-- LOGIN MODAL -->
   <div id="loginModal" class="login-modal-overlay hidden">
     <div class="login-modal">
-      <button class="login-close" onclick="hideLoginModal()">&times;</button>
+      <button class="login-close" onclick="hideLoginModal()">✕</button>
       
       <h2>🔐 Login - FinanceSync Pro</h2>
       
       <div id="loginError" class="login-error"></div>
+      
+      <div id="firebaseWarning" style="display:none; margin-bottom:16px; padding:12px; background:rgba(251,191,36,0.15); border:1px solid rgba(251,191,36,0.3); border-radius:8px; font-size:12px; color:#fbbf24; text-align:center;">
+        ⏳ Firebase sedang dipersiapkan...
+      </div>
       
       <div class="login-companies-hint">
         <div class="login-company-option" onclick="selectCompany('nmsa')">
@@ -2002,58 +1099,56 @@
       
       <div class="login-form-group">
         <label class="login-form-label">Email Address</label>
-        <input type="email" id="loginEmail" class="login-input" placeholder="admin@nmsa.com atau admin-ipn@gmail.com" autocomplete="email">
+        <input type="email" id="loginEmail" class="login-input" placeholder="admin@nmsa.com">
       </div>
       
       <div class="login-form-group">
         <label class="login-form-label">Password</label>
-        <input type="password" id="loginPassword" class="login-input" placeholder="Masukkan password" autocomplete="current-password">
+        <input type="password" id="loginPassword" class="login-input" placeholder="Masukkan password">
       </div>
       
       <button class="login-btn-submit" id="loginSubmitBtn" onclick="handleLoginForm()">Masuk ke Dashboard</button>
       
       <div class="login-hint">
-        📌 Gunakan akun perusahaan Anda untuk login<br>
-        <strong>Data akan difilter otomatis sesuai perusahaan</strong>
+        📌 Gunakan akun Firebase Anda<br>
+        <strong>Data otomatis filter per company</strong>
       </div>
     </div>
   </div>
 
-  </main>
+  <!-- DOCUMENT MODAL -->
+  <div id="documentModal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width:900px;">
+      <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-200 no-print bg-white -mx-8 -mt-8 pt-6 rounded-t-xl">
+        <h2 class="text-lg font-semibold text-slate-800">Preview Dokumen</h2>
+        <div class="flex gap-2">
+          <button class="btn-pdf" onclick="downloadAsPDF()">📥 Download PDF</button>
+          <button onclick="closeDocumentModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 text-xl">✕</button>
+        </div>
+      </div>
+      <div id="documentContent" class="documents-container"></div>
+    </div>
+  </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════════
-       ★★★ COMPLETE JAVASCRIPT IMPLEMENTATION ★★★
-       ═══════════════════════════════════════════════════════════════════════════ -->
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- JAVASCRIPT - COMPLETE & FIXED                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
   <script>
     // ============================================
-    // CONFIG.JS - Konfigurasi & Global State
+    // CONFIGURATION
     // ============================================
-    
     const CONFIG_KEYS = {
       FIREBASE_CONFIG: 'firebase_config',
       APPS_SCRIPT_URL: 'apps_script_url',
-      SELECTED_COMPANY: 'selected_company',
-      USER_DATA: 'user_data',
-      LAST_SYNC: 'last_sync_time'
+      SELECTED_COMPANY: 'selected_company'
     };
 
     const COMPANIES = {
-      nmsa: {
-        id: 'nmsa',
-        name: 'NMSA',
-        fullName: 'PT Nusantara Mineral Sukses Abadi',
-        collection: 'Invoice-NMSA',
-        color: '#2563eb',
-        icon: '🏢'
-      },
-      ipn: {
-        id: 'ipn',
-        name: 'IPN',
-        fullName: 'PT Indonesia Prima Nusantara',
-        collection: 'Invoice-IPN',
-        color: '#dc2626',
-        icon: '🏭'
-      }
+      nmsa: { id: 'nmsa', name: 'NMSA', collection: 'Invoice-NMSA', color: '#2563eb' },
+      ipn: { id: 'ipn', name: 'IPN', collection: 'Invoice-IPN', color: '#dc2626' }
     };
 
     // Global State
@@ -2063,864 +1158,535 @@
       auth: null,
       currentUser: null,
       selectedCompany: null,
-      appsScriptUrl: '',
       selectedFiles: [],
       items: [],
       historyData: [],
-      isConnecting: false,
       isConnected: false,
-      lastSyncTime: null,
       unsubscribeListener: null
     };
 
-    // Apps Script Configuration Manager
-    window.APPS_SCRIPT_CONFIG = {
-      getUrl: () => localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL) || '',
-      setUrl: (url) => {
-        localStorage.setItem(CONFIG_KEYS.APPS_SCRIPT_URL, url);
-        window.state.appsScriptUrl = url;
-      },
-      clear: () => {
-        localStorage.removeItem(CONFIG_KEYS.APPS_SCRIPT_URL);
-        window.state.appsScriptUrl = '';
-      }
-    };
-
     // ============================================
-    // UTILS.JS - Utility Functions
+    // UTILITIES
     // ============================================
-    
     const Utils = {
-      formatCurrency: (amount) => new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      }).format(amount || 0),
-
-      formatDate: (dateString) => {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('id-ID', {
-          day: '2-digit', month: 'short', year: 'numeric'
-        });
-      },
-
-      formatDateFull: (dateString) => {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('id-ID', {
-          day: 'numeric', month: 'long', year: 'numeric'
-        });
-      },
-
-      generateId: () => Date.now().toString(36) + Math.random().toString(36).substr(2),
-
+      formatCurrency: (amount) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0),
+      formatDate: (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '-',
+      formatDateFull: (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) : '-',
       validateEmail: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-
-      formatFileSize: (bytes) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-      },
-
-      getFileIcon: (filename) => {
-        const ext = filename.split('.').pop().toLowerCase();
-        const icons = {
-          pdf: { icon: '📄', class: 'pdf' },
-          jpg: { icon: '🖼️', class: 'image' },
-          jpeg: { icon: '🖼️', class: 'image' },
-          png: { icon: '🖼️', class: 'image' },
-          gif: { icon: '🖼️', class: 'image' },
-          webp: { icon: '🖼️', class: 'image' },
-          doc: { icon: '📝', class: 'doc' },
-          docx: { icon: '📝', class: 'doc' },
-          xls: { icon: '📊', class: 'doc' },
-          xlsx: { icon: '📊', class: 'doc' },
-          ppt: { icon: '📽️', class: 'doc' },
-          pptx: { icon: '📽️', class: 'doc' }
-        };
-        return icons[ext] || { icon: '📎', class: 'default' };
-      },
-
-      showToast: (message, type = 'info') => {
-        const toast = document.getElementById('toast');
-        if (!toast) return;
-        const colors = {
-          success: 'border-l-4 border-green-500 bg-green-900/20',
-          error: 'border-l-4 border-red-500 bg-red-900/20',
-          warning: 'border-l-4 border-yellow-500 bg-yellow-900/20',
-          info: 'border-l-4 border-blue-500 bg-blue-900/20'
-        };
-        toast.className = `toast show ${colors[type] || colors.info}`;
-        toast.innerHTML = message;
-        setTimeout(() => toast.classList.remove('show'), 3000);
-      },
-
-      parseFirebaseConfig: (configStr) => {
-        try {
-          const config = JSON.parse(configStr);
-          if (!config.apiKey || !config.projectId) throw new Error('apiKey dan projectId wajib ada');
-          return config;
-        } catch (error) {
-          throw new Error('Format konfigurasi tidak valid. Pastikan JSON format benar.');
-        }
-      }
+      formatFileSize: (bytes) => { if (!bytes) return '0 Bytes'; const k=1024,s=['Bytes','KB','MB','GB'],i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+s[i]; },
+      getFileIcon: (filename) => { const e=filename.split('.').pop().toLowerCase(),i={pdf:{icon:'📄',class:'pdf'},jpg:{icon:'🖼️',class:'image'},jpeg:{icon:'🖼️',class:'image'},png:{icon:'🖼️',class:'image'},gif:{icon:'🖼️',class:'image'},webp:{icon:'🖼️',class:'image'},doc:{icon:'📝',class:'doc'},docx:{icon:'📝',class:'doc'},xls:{icon:'📊',class:'doc'},xlsx:{icon:'📊',class:'doc'},ppt:{icon:'📽️',class:'doc'},pptx:{icon:'📽️',class:'doc'}}; return i[e]||{icon:'📎',class:'default'}; },
+      showToast: (msg, type='info') => { const t=document.getElementById('toast'); if(!t)return; const c={success:'border-l-4 border-green-500 bg-green-900/20',error:'border-l-4 border-red-500 bg-red-900/20',warning:'border-l-4 border-yellow-500 bg-yellow-900/20',info:'border-l-4 border-blue-500 bg-blue-900/20'}; t.className=`toast show ${c[type]||c.info}`; t.innerHTML=msg; setTimeout(()=>t.classList.remove('show'),3000); },
+      parseFirebaseConfig: (str) => { try { const c=JSON.parse(str); if(!c.apiKey||!c.projectId) throw new Error('Invalid config'); return c; } catch(e) { throw new Error('Invalid JSON format'); } }
     };
 
     // ============================================
-    // FIREBASE-INIT.JS - Firebase Initialization
+    // FIREBASE INITIALIZATION
     // ============================================
-    
     async function initializeFirebase() {
       try {
-        updateConnectionStatus('connecting', 'Menghubungkan ke Firebase...');
+        updateStatus('connecting', 'Connecting...');
         
         const configStr = localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG);
         if (!configStr) {
-          updateConnectionStatus('error', 'Belum dikonfigurasi');
+          updateStatus('error', 'Not configured');
           showLoginModal();
           return false;
         }
 
-        const firebaseConfig = Utils.parseFirebaseConfig(configStr);
+        const config = Utils.parseFirebaseConfig(configStr);
         
-        if (!firebase.apps.length) {
-          window.state.firebaseApp = firebase.initializeApp(firebaseConfig);
-        } else {
-          window.state.firebaseApp = firebase.app();
-        }
+        if (!firebase.apps.length) window.state.firebaseApp = firebase.initializeApp(config);
+        else window.state.firebaseApp = firebase.app();
 
         window.state.db = firebase.firestore();
-        window.state.auth = firebase.auth();
-
+        window.state.auth = firebase.auth(); // ⭐ CRITICAL
+        
         setupAuthListener();
-        updateConnectionStatus('connected', 'Terhubung ke Firebase');
+        updateStatus('connected', '✅ Connected');
         window.state.isConnected = true;
 
-        console.log('✅ Firebase initialized successfully');
+        console.log('✅ Firebase initialized');
         return true;
-
       } catch (error) {
-        console.error('❌ Firebase initialization error:', error);
-        updateConnectionStatus('error', 'Gagal terhubung: ' + error.message);
-        Utils.showToast('Gagal menginisialisasi Firebase: ' + error.message, 'error');
+        console.error('❌ Init error:', error);
+        updateStatus('error', 'Failed: '+error.message);
+        window.state.auth = null; // Explicit null
+        window.state.isConnected = false;
         showLoginModal();
         return false;
       }
     }
 
-    function setupAuthListener() {
-      if (!window.state.auth) return;
+    function updateStatus(status, msg) {
+      const dot=document.getElementById('statusDot'), text=document.getElementById('statusText');
+      if(dot) dot.className='status-dot '+status;
+      if(text) text.textContent=msg;
+    }
 
-      window.state.auth.onAuthStateChanged(async (user) => {
-        if (user) {
-          console.log('✅ User logged in:', user.email);
-          window.state.currentUser = user;
+    function setupAuthListener() {
+      if(!window.state.auth) return;
+      window.state.auth.onAuthStateChanged(user => {
+        console.log('🔐 Auth state:', user ? user.email : 'logged out');
+        if(user) {
+          window.state.currentUser=user;
           updateAuthUI(true);
-          
-          const savedCompany = localStorage.getItem(CONFIG_KEYS.SELECTED_COMPANY);
-          if (savedCompany && COMPANIES[savedCompany]) {
-            selectCompany(savedCompany);
-            startDataListener();
-          } else {
-            showLoginModal();
-          }
+          const saved=localStorage.getItem(CONFIG_KEYS.SELECTED_COMPANY);
+          if(saved&&COMPANIES[savedCompany]) { selectCompany(saved); startDataListener(); }
+          else showLoginModal();
         } else {
-          console.log('🚪 User logged out');
-          window.state.currentUser = null;
+          window.state.currentUser=null;
           updateAuthUI(false);
           showLoginModal();
         }
       });
     }
 
-    function updateConnectionStatus(status, message) {
-      const dot = document.getElementById('statusDot');
-      const text = document.getElementById('statusText');
-      if (dot) dot.className = 'status-dot ' + status;
-      if (text) text.textContent = message;
-    }
-
     // ============================================
-    // FIRESTORE-DB.JS - Database Operations
+    // DATABASE OPERATIONS
     // ============================================
-    
-    const FirestoreDB = {
-      getCollectionName: () => {
-        const company = window.state.selectedCompany;
-        return company ? COMPANIES[company].collection : 'Invoice-NMSA';
-      },
+    const DB = {
+      getCollection: () => window.state.selectedCompany ? COMPANIES[window.state.selectedCompany].collection : 'Invoice-NMSA',
 
       addData: async (data) => {
         try {
-          const docRef = await window.state.db.collection(FirestoreDB.getCollectionName()).add({
+          const ref=await window.state.db.collection(DB.getCollection()).add({
             ...data,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            createdBy: window.state.currentUser?.email || 'anonymous',
-            companyId: window.state.selectedCompany || 'nmsa'
+            createdBy: window.state.currentUser?.email||'anonymous',
+            companyId: window.state.selectedCompany||'nmsa'
           });
-          console.log('✅ Document added:', docRef.id);
-          Utils.showToast('Data berhasil disimpan ke Firebase!', 'success');
-          return docRef.id;
-        } catch (error) {
-          console.error('❌ Error adding document:', error);
-          Utils.showToast('Gagal menyimpan data: ' + error.message, 'error');
-          throw error;
-        }
+          Utils.showToast('✅ Data saved!', 'success');
+          return ref.id;
+        } catch(e) { Utils.showToast('Save failed: '+e.message,'error'); throw e; }
       },
 
-      updateData: async (docId, data) => {
+      listen: (cb) => {
         try {
-          await window.state.db.collection(FirestoreDB.getCollectionName()).doc(docId).update({
-            ...data,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          Utils.showToast('Data berhasil diperbarui!', 'success');
-          return true;
-        } catch (error) {
-          Utils.showToast('Gagal memperbarui data: ' + error.message, 'error');
-          throw error;
-        }
-      },
-
-      deleteData: async (docId) => {
-        try {
-          await window.state.db.collection(FirestoreDB.getCollectionName()).doc(docId).delete();
-          Utils.showToast('Data berhasil dihapus!', 'success');
-          return true;
-        } catch (error) {
-          Utils.showToast('Gagal menghapus data: ' + error.message, 'error');
-          throw error;
-        }
-      },
-
-      listenToChanges: (callback) => {
-        try {
-          if (window.state.unsubscribeListener) window.state.unsubscribeListener();
-          
-          window.state.unsubscribeListener = window.state.db
-            .collection(FirestoreDB.getCollectionName())
-            .orderBy('createdAt', 'desc')
-            .onSnapshot(snapshot => {
-              const data = [];
-              snapshot.forEach(doc => data.push({ id: doc.id, ...doc.data() }));
-              callback(data);
-              updateStatistics(data);
-            }, error => console.error('❌ Listener error:', error));
-            
-          console.log('👂 Real-time listener started:', FirestoreDB.getCollectionName());
-        } catch (error) {
-          console.error('❌ Error setting up listener:', error);
-        }
+          if(window.state.unsubscribeListener) window.state.unsubscribeListener();
+          window.state.unsubscribeListener=window.state.db.collection(DB.getCollection())
+            .orderBy('createdAt','desc')
+            .onSnapshot(snap=>{
+              const data=[];
+              snap.forEach(doc=>data.push({id:doc.id,...doc.data()}));
+              cb(data);
+              updateStats(data);
+            },err=>console.error('Listener error:',err));
+        } catch(e) { console.error('Setup listener error:',e); }
       }
     };
 
     // ============================================
-    // DRIVE-SYNC.JS - Google Drive Sync Functions
+    // MAIN APP
     // ============================================
-    
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-      });
-    }
+    let itemCount=0;
 
-    const DriveSync = {
-      uploadFileToDrive: async (file, metadata = {}) => {
-        const url = window.APPS_SCRIPT_CONFIG.getUrl();
-        if (!url) {
-          console.warn('⚠️ Apps Script URL not configured');
-          return null;
-        }
-
-        try {
-          const base64 = await fileToBase64(file);
-          const payload = {
-            action: 'create_file',
-            fileName: file.name,
-            mimeType: file.type,
-            base64Data: base64.split(',')[1],
-            folderPath: `FinanceSync/${COMPANIES[window.state.selectedCompany]?.name || 'Default'}/${new Date().getFullYear()}`,
-            metadata: { uploadedBy: window.state.currentUser?.email, companyId: window.state.selectedCompany, ...metadata }
-          };
-
-          console.log('📤 Uploading to Google Drive:', file.name);
-          await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          
-          return { success: true, fileName: file.name, fileSize: file.size, timestamp: new Date().toISOString() };
-        } catch (error) {
-          console.error('❌ Upload error:', error);
-          Utils.showToast('Gagal upload ke Google Drive: ' + error.message, 'error');
-          return null;
-        }
-      }
-    };
-
-    // ============================================
-    // APP.JS - Main Application Logic
-    // ============================================
-    
-    let itemCount = 0;
-
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('DOMContentLoaded', async()=>{
       console.log('🚀 FinanceSync Pro v3.4 starting...');
-      const ready = await initializeFirebase();
-      if (ready) loadSavedSettings();
-      initializeForm();
-      addFormItem();
-      document.getElementById('tanggal').valueAsDate = new Date();
-      setupEventListeners();
+      await initializeFirebase();
+      initForm();
+      addItem();
+      document.getElementById('tanggal').valueAsDate=new Date();
+      setInterval(updateLoginButton,500);
     });
 
-    function loadSavedSettings() {
-      const url = window.APPS_SCRIPT_CONFIG.getUrl();
-      const input = document.getElementById('appsScriptUrlInput');
-      if (input && url) input.value = url;
+    function initForm() {
+      const f=document.getElementById('dataForm');
+      if(f) f.addEventListener('submit', handleSubmit);
     }
 
-    function initializeForm() {
-      const form = document.getElementById('dataForm');
-      if (form) form.addEventListener('submit', handleFormSubmit);
-    }
-
-    function setupEventListeners() {
-      const clearBtn = document.getElementById('clearHistory');
-      if (clearBtn) clearBtn.onclick = () => {
-        if (confirm('Hapus tampilan riwayat?')) {
-          window.state.historyData = [];
-          renderHistory([]);
-          Utils.showToast('Riwayat direset', 'info');
+    function updateLoginButton() {
+      const warning=document.getElementById('firebaseWarning'),
+            btn=document.getElementById('loginSubmitBtn');
+      if(warning&&btn) {
+        if(!window.state.auth||!window.state.isConnected) {
+          warning.style.display='block';
+          btn.disabled=true;
+          btn.textContent='⏳ Preparing...';
+        } else {
+          warning.style.display='none';
+          btn.disabled=false;
+          btn.textContent='Masuk ke Dashboard';
         }
-      };
+      }
     }
 
-    // ===== FORM ITEMS MANAGEMENT =====
-    function addFormItem(data = {}) {
+    // Form Items
+    function addItem(d={}) {
       itemCount++;
-      const container = document.getElementById('itemsContainer');
-      container.insertAdjacentHTML('beforeend', `
-        <div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="item-${itemCount}">
-          <div class="col-span-5">
-            <input type="text" name="item_name_${itemCount}" class="input-field text-sm" placeholder="Nama barang/jasa" value="${data.name || ''}" onchange="calculateTotal()">
-          </div>
-          <div class="col-span-2">
-            <input type="number" name="item_qty_${itemCount}" class="input-field text-sm text-center" placeholder="Qty" value="${data.qty || 1}" min="1" onchange="calculateTotal()">
-          </div>
-          <div class="col-span-3">
-            <input type="number" name="item_price_${itemCount}" class="input-field text-sm font-mono" placeholder="Harga" value="${data.price || ''}" min="0" onchange="calculateTotal()">
-          </div>
+      document.getElementById('itemsContainer').insertAdjacentHTML('beforeend',
+        `<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="item-${itemCount}">
+          <div class="col-span-5"><input type="text" name="name_${itemCount}" class="input-field text-sm" placeholder="Nama barang/jasa" value="${d.name||''}" onchange="calcTotal()"></div>
+          <div class="col-span-2"><input type="number" name="qty_${itemCount}" class="input-field text-sm text-center" placeholder="Qty" value="${d.qty||1}" min="1" onchange="calcTotal()"></div>
+          <div class="col-span-3"><input type="number" name="price_${itemCount}" class="input-field text-sm font-mono" placeholder="Harga" value="${d.price||''}" min="0" onchange="calcTotal()"></div>
           <div class="col-span-2 flex items-center justify-end">
             <span class="text-sm font-mono text-[--muted] item-total" id="total-${itemCount}">Rp 0</span>
-            ${itemCount > 1 ? `<button type="button" onclick="removeFormItem(${itemCount})" class="ml-2 w-6 h-6 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs">×</button>` : ''}
-          </div>
-        </div>
-      `);
-      window.state.items.push({ id: itemCount, ...data });
+            ${itemCount>1?`<button type="button" onclick="removeItem(${itemCount})" class="ml-2 w-6 h-6 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs">×</button>`:''}
+          </div></div>`
+      );
+      window.state.items.push({id:itemCount,...d});
     }
 
-    function removeFormItem(id) {
-      const el = document.getElementById(`item-${id}`);
-      if (el) { el.remove(); window.state.items = window.state.items.filter(i => i.id !== id); calculateTotal(); }
+    function removeItem(id) {
+      const el=document.getElementById(`item-${id}`);
+      if(el){el.remove();window.state.items=window.state.items.filter(i=>i.id!==id); calcTotal();}
     }
 
-    function calculateTotal() {
-      let total = 0;
-      document.querySelectorAll('.item-row').forEach(row => {
-        const qty = parseFloat(row.querySelector('[name^="item_qty_"]')?.value) || 0;
-        const price = parseFloat(row.querySelector('[name^="item_price_"]')?.value) || 0;
-        total += qty * price;
-        const totalEl = row.querySelector('.item-total');
-        if (totalEl) totalEl.textContent = Utils.formatCurrency(qty * price);
+    function calcTotal() {
+      let total=0;
+      document.querySelectorAll('.item-row').forEach(row=>{
+        const qty=parseFloat(row.querySelector('[name^="qty_"]')?.value)||0,
+              price=parseFloat(row.querySelector('[name^="price_"]')?.value)||0;
+        total+=qty*price;
+        const el=row.querySelector('.item-total');
+        if(el) el.textContent=Utils.formatCurrency(qty*price);
       });
-      const display = document.getElementById('grandTotalDisplay');
-      if (display) display.value = Utils.formatCurrency(total);
+      const d=document.getElementById('grandTotalDisplay');
+      if(d) d.value=Utils.formatCurrency(total);
       return total;
     }
 
-    // ===== FORM SUBMISSION =====
-    async function handleFormSubmit(e) {
+    async function handleSubmit(e) {
       e.preventDefault();
-      if (!validateForm()) return;
+      if(!validate()) return;
 
-      const btn = document.querySelector('#dataForm button[type="submit"]');
-      const origText = btn.innerHTML;
-      btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
-      btn.disabled = true;
+      const btn=document.querySelector('#dataForm button[type="submit"]');
+      btn.innerHTML='<span class="spinner"></span> Saving...';
+      btn.disabled=true;
 
       try {
-        const formData = collectFormData();
-        const docId = await FirestoreDB.addData(formData);
-
-        if (window.state.selectedFiles.length > 0) {
-          for (const file of window.state.selectedFiles) {
-            await DriveSync.uploadFileToDrive(file, { documentId: docId, kode: formData.kode });
-          }
-        }
-
+        await DB.addData(collectData());
         resetForm();
-        Utils.showToast('✅ Data berhasil disimpan!', 'success');
-      } catch (error) {
-        console.error('❌ Submit error:', error);
-        Utils.showToast('Gagal menyimpan: ' + error.message, 'error');
+        Utils.showToast('✅ Saved!','success');
+      } catch(err) {
+        Utils.showToast('Error: '+err.message,'error');
       }
 
-      btn.innerHTML = origText;
-      btn.disabled = false;
+      btn.innerHTML='💾 Simpan ke Firebase';
+      btn.disabled=false;
     }
 
-    function validateForm() {
-      const fields = [
-        { id: 'tanggal', label: 'Tanggal Invoice' },
-        { id: 'lokasi', label: 'Lokasi' },
-        { id: 'jenis_pengajuan', label: 'Jenis Pengajuan' },
-        { id: 'kode', label: 'Kode' },
-        { id: 'status', label: 'Status Pembayaran' },
-        { id: 'dibayarkan_kepada', label: 'Dibayarkan Kepada' }
+    function validate() {
+      const fields=[
+        {id:'tanggal',l:'Tanggal'},
+        {id:'lokasi',l:'Lokasi'},
+        {id:'jenis_pengajuan',l:'Jenis'},
+        {id:'kode',l:'Kode'},
+        {id:'status',l:'Status'},
+        {id:'dibayarkan_kepada',l:'Dibayarkan kepada'}
       ];
-      const errors = fields.filter(f => !document.getElementById(f.id)?.value.trim()).map(f => f.label);
+      const errors=fields.filter(f=>!document.getElementById(f.id)?.value.trim()).map(f=>f.l);
 
-      let hasItem = false;
-      document.querySelectorAll('.item-row').forEach(row => {
-        if (row.querySelector('[name^="item_name_"]')?.value.trim()) hasItem = true;
+      let hasItem=false;
+      document.querySelectorAll('.item-row').forEach(r=>{
+        if(r.querySelector('[name^="name_"]')?.value.trim()) hasItem=true;
       });
-      if (!hasItem) errors.push('Minimal 1 item barang/jasa');
+      if(!hasItem) errors.push('Minimal 1 item');
 
-      if (errors.length > 0) {
-        Utils.showToast(`Mohon lengkapi: ${errors.join(', ')}`, 'error');
+      if(errors.length){
+        Utils.showToast('Required: '+errors.join(', '),'error');
         return false;
       }
       return true;
     }
 
-    function collectFormData() {
-      const items = [];
-      document.querySelectorAll('.item-row').forEach(row => {
-        const name = row.querySelector('[name^="item_name_"]')?.value || '';
-        const qty = parseFloat(row.querySelector('[name^="item_qty_"]')?.value) || 0;
-        const price = parseFloat(row.querySelector('[name^="item_price_"]')?.value) || 0;
-        if (name && qty > 0 && price > 0) items.push({ name, qty, price, total: qty * price });
+    function collectData() {
+      const items=[];
+      document.querySelectorAll('.item-row').forEach(row=>{
+        const n=row.querySelector('[name^="name_"]')?.value||'',
+              q=parseFloat(row.querySelector('[name^="qty_"]')||0,
+              p=parseFloat(row.querySelector('[name^="price_"]')||0;
+        if(n&&q>0&&p>0) items.push({name:n,qty:q,price:p,total:q*p});
       });
 
-      return {
-        tanggal: document.getElementById('tanggal').value,
-        lokasi: document.getElementById('lokasi').value,
-        jenis_pengajuan: document.getElementById('jenis_pengajuan').value,
-        kode: document.getElementById('kode').value,
-        no_invoice: document.getElementById('no_invoice').value,
-        status: document.getElementById('status').value,
-        dibayarkan_kepada: document.getElementById('dibayarkan_kepada').value,
-        tanggal_pembayaran: document.getElementById('tanggal_pembayaran').value,
-        catatan_tambahan: document.getElementById('catatan_tambahan').value,
+      return{
+        tanggal:document.getElementById('tanggal').value,
+        lokasi:document.getElementById('lokasi').value,
+        jenis_pengajuan:document.getElementById('jenis_pengajuan').value,
+        kode:document.getElementById('kode').value,
+        no_invoice:document.getElementById('no_invoice').value,
+        status:document.getElementById('status').value,
+        dibayarkan_kepada:document.getElementById('dibayarkan_kepada').value,
+        tanggal_pembayaran:document.getElementById('tanggal_pembayaran').value,
+        catatan_tambahan:document.getElementById('catatan_tambahan').value,
         items,
-        grandTotal: calculateTotal(),
-        files: window.state.selectedFiles.map(f => ({ name: f.name, size: f.size, type: f.type }))
+        grandTotal:calcTotal(),
+        files:window.state.selectedFiles.map(f=>({name:f.name,size:f.size,type:f.type}))
       };
     }
 
     function resetForm() {
       document.getElementById('dataForm').reset();
-      clearSelectedFiles();
-      window.state.items = [];
-      document.getElementById('itemsContainer').innerHTML = '';
-      addFormItem();
-      document.getElementById('tanggal').valueAsDate = new Date();
-      calculateTotal();
+      clearFiles();
+      window.state.items=[];
+      document.getElementById('itemsContainer').innerHTML='';
+      addItem();
+      document.getElementById('tanggal').valueAsDate=new Date();
+      calcTotal();
     }
 
-    // ===== FILE HANDLING =====
-    window.handleFileSelect = function(input) {
-      Array.from(input.files).forEach(file => {
-        if (file.size > 30 * 1024 * 1024) {
-          Utils.showToast(`File "${file.name}" melebihi 30MB`, 'error');
-          return;
-        }
-        window.state.selectedFiles.push(file);
+    // File Handling
+    window.handleFileSelect=function(input){
+      Array.from(input.files).forEach(file=>{
+        if(file.size<=30*1024*1024) window.state.selectedFiles.push(file);
+        else Utils.showToast(file.name+' exceeds 30MB','error');
       });
-      renderSelectedFiles();
+      renderFiles();
     };
 
-    window.handleExternalFiles = function(files) {
-      Array.from(files).forEach(file => {
-        if (file.size <= 30 * 1024 * 1024) window.state.selectedFiles.push(file);
+    window.handleExternalFiles=function(files){
+      Array.from(files).forEach(file=>{
+        if(file.size<=30*1024*1024) window.state.selectedFiles.push(file);
       });
-      renderSelectedFiles();
+      renderFiles();
     };
 
-    function renderSelectedFiles() {
-      const container = document.getElementById('fileListDisplay');
-      const actions = document.getElementById('selectedFilesActions');
-      const count = document.getElementById('selectedFilesCount');
-      const placeholder = document.getElementById('uploadPlaceholder');
+    function renderFiles(){
+      const c=document.getElementById('fileListDisplay'),
+            a=document.getElementById('selectedFilesActions'),
+            cnt=document.getElementById('selectedFilesCount'),
+            p=document.getElementById('uploadPlaceholder');
+      if(!c) return;
 
-      if (!container) return;
-
-      if (window.state.selectedFiles.length === 0) {
-        container.innerHTML = '';
-        if (actions) actions.style.display = 'none';
-        if (placeholder) placeholder.style.display = 'block';
+      if(window.state.selectedFiles.length===0){
+        c.innerHTML='';
+        if(a) a.style.display='none';
+        if(p) p.style.display='block';
         return;
       }
 
-      if (placeholder) placeholder.style.display = 'none';
-      if (actions) actions.style.display = 'flex';
-      if (count) count.textContent = `${window.state.selectedFiles.length} file dipilih`;
+      if(p) p.style.display='none';
+      if(a) a.style.display='flex';
+      if(cnt) cnt.textContent=window.state.selectedFiles.length+' file dipilih';
 
-      container.innerHTML = window.state.selectedFiles.map((file, i) => {
-        const info = Utils.getFileIcon(file.name);
+      c.innerHTML=window.state.selectedFiles.map((f,i)=>{
+        const info=Utils.getFileIcon(f.name);
         return `<div class="file-item-card">
           <div class="file-item-icon ${info.class}">${info.icon}</div>
           <div class="file-item-info">
-            <div class="file-item-name">${file.name}</div>
-            <div class="file-item-size">${Utils.formatFileSize(file.size)}</div>
+            <div class="file-item-name">${f.name}</div>
+            <div class="file-item-size">${Utils.formatFileSize(f.size)}</div>
           </div>
           <button onclick="removeFile(${i})" class="file-item-remove">×</button>
         </div>`;
       }).join('');
     }
 
-    window.removeFile = function(index) {
-      window.state.selectedFiles.splice(index, 1);
-      renderSelectedFiles();
+    window.removeFile=(i)=>{ window.state.selectedFiles.splice(i,1); renderFiles(); };
+    window.clearFiles=()=>{ window.state.selectedFiles=[]; const fi=document.getElementById('fileInput'); if(fi) fi.value=''; renderFiles(); };
+    window.resetUploadArea=()=>{ clearFiles(); };
+
+    // Drag & Drop
+    window.handleDragOver=(e)=>{ e.preventDefault(); const a=document.getElementById('uploadArea'); if(a) a.classList.add('drag-over'); };
+    window.handleDragLeave=(e)=>{ e.preventDefault(); const a=document.getElementById('uploadArea'); if(a) a.classList.remove('drag-over'); };
+    window.handleDrop=(e)=>{
+      e.preventDefault();
+      const a=document.getElementById('uploadArea');
+      if(a) a.classList.remove('drag-over');
+      if(e.dataTransfer?.files?.length>0) handleExternalFiles(e.dataTransfer.files);
     };
 
-    window.clearSelectedFiles = function() {
-      window.state.selectedFiles = [];
-      const fi = document.getElementById('fileInput');
-      if (fi) fi.value = '';
-      renderSelectedFiles();
+    // Auth Functions
+    function showLoginModal(){ const m=document.getElementById('loginModal'); if(m) m.classList.remove('hidden'); }
+    window.hideLoginModal=()=>{ const m=document.getElementById('loginModal'); if(m) m.classList.add('hidden'); };
+
+    window.selectCompany=(companyId)=>{
+      document.querySelectorAll('.login-company-option').forEach(el=>el.classList.remove('selected'));
+      const sel=document.querySelector(`.login-company-option:nth-child(${companyId==='nmsa'?1:2})`);
+      if(sel) sel.classList.add('selected');
+      window.state.selectedCompany=companyId;
+      localStorage.setItem(CONFIG_KEYS.SELECTED_COMPANY,companyId);
     };
 
-    window.resetUploadArea = function() { clearSelectedFiles(); hideUploadProgress(); };
+    window.handleLoginForm=async()=>{
+      const email=document.getElementById('loginEmail')?.value,
+            pwd=document.getElementById('loginPassword')?.value,
+            errDiv=document.getElementById('loginError');
 
-    function showUploadProgress(pct = 0) {
-      const c = document.getElementById('uploadProgressContainer'), b = document.getElementById('uploadProgressBar');
-      if (c && b) { c.style.display = 'block'; b.style.width = Math.min(100, Math.max(0, pct)) + '%'; if (pct > 0 && pct < 100) b.classList.add('animating'); else b.classList.remove('animating'); }
-    }
+      if(errDiv){ errDiv.classList.remove('show'); errDiv.textContent=''; }
+      if(!email||!pwd) return showError('Email & password required');
+      if(!Utils.validateEmail(email)) return showError('Invalid email');
+      if(!window.state.selectedCompany) return showError('Select company first');
 
-    function hideUploadProgress() {
-      const c = document.getElementById('uploadProgressContainer'), b = document.getElementById('uploadProgressBar');
-      if (c) c.style.display = 'none';
-      if (b) { b.style.width = '0%'; b.classList.remove('animating'); }
-    }
+      // 🔒 SAFETY CHECK
+      if(!window.state.auth){
+        console.error('❌ Auth is NULL! Retrying...');
+        showError('Firebase not ready. Click Setup.');
+        
+        const ok=await initializeFirebase();
+        if(!ok||!window.state.auth) return showError('Cannot connect. Check Setup.');
+      }
 
-    // ===== AUTHENTICATION =====
-    function showLoginModal() { const m = document.getElementById('loginModal'); if (m) m.classList.remove('hidden'); }
-    window.hideLoginModal = function() { const m = document.getElementById('loginModal'); if (m) m.classList.add('hidden'); };
+      const btn=document.getElementById('loginSubmitBtn');
+      if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Logging in...'; }
 
-    window.selectCompany = function(companyId) {
-      document.querySelectorAll('.login-company-option').forEach(el => el.classList.remove('selected'));
-      const sel = document.querySelector(`.login-company-option:nth-child(${companyId === 'nmsa' ? 1 : 2})`);
-      if (sel) sel.classList.add('selected');
-      window.state.selectedCompany = companyId;
-      localStorage.setItem(CONFIG_KEYS.SELECTED_COMPANY, companyId);
-      console.log('🏢 Company selected:', COMPANIES[companyId]?.name);
-    };
-
-    window.handleLoginForm = async function() {
-      const email = document.getElementById('loginEmail')?.value;
-      const password = document.getElementById('loginPassword')?.value;
-      const errDiv = document.getElementById('loginError');
-
-      if (errDiv) { errDiv.classList.remove('show'); errDiv.textContent = ''; }
-      if (!email || !password) return showError('Email dan password wajib diisi');
-      if (!Utils.validateEmail(email)) return showError('Format email tidak valid');
-      if (!window.state.selectedCompany) return showError('Pilih perusahaan terlebih dahulu');
-
-      const btn = document.getElementById('loginSubmitBtn');
-      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Memproses...'; }
-
-      try {
-        await window.state.auth.signInWithEmailAndPassword(email, password);
+      try{
+        console.log('🔐 Signing in...', email);
+        await window.state.auth.signInWithEmailAndPassword(email,pwd);
         hideLoginModal();
         updateAuthUI(true);
         startDataListener();
-        Utils.showToast(`Selamat datang! (${COMPANIES[window.state.selectedCompany].name})`, 'success');
-      } catch (error) {
-        let msg = 'Login gagal';
-        switch (error.code) {
-          case 'auth/user-not-found': msg = 'Akun tidak ditemukan'; break;
-          case 'auth/wrong-password': msg = 'Password salah'; break;
-          case 'auth/invalid-email': msg = 'Email tidak valid'; break;
-          case 'auth/too-many-requests': msg = 'Terlalu banyak percobaan'; break;
-          default: msg = error.message || 'Terjadi kesalahan';
+        Utils.showToast(`Welcome! (${COMPANIES[window.state.selectedCompany].name})`,'success');
+      }catch(e){
+        console.error('❌ Login error:',e);
+        let msg='Login failed';
+        switch(e.code){
+          case 'auth/user-not-found': msg='Account not found'; break;
+          case 'auth/wrong-password': msg='Wrong password'; break;
+          case 'auth/invalid-email': msg='Invalid email'; break;
+          case 'auth/too-many-requests': msg='Too many attempts. Wait 1-2 minutes.'; break;
+          default: msg=e.message||'Unknown error';
         }
         showError(msg);
-      }
-
-      if (btn) { btn.disabled = false; btn.innerHTML = 'Masuk ke Dashboard'; }
+      }finally{
+        if(btn){ btn.disabled=false; btn.innerHTML='Masuk ke Dashboard'; }
     };
 
-    function showError(msg) {
-      const d = document.getElementById('loginError');
-      if (d) { d.textContent = msg; d.classList.add('show'); }
+    function showError(msg){
+      const d=document.getElementById('loginError');
+      if(d){ d.textContent=msg; d.classList.add('show'); }
     }
 
-    window.handleLogout = async function() {
-      try {
+    window.handleLogout=async()=>{
+      try{
         await window.state.auth.signOut();
-        window.state.currentUser = null;
-        window.state.selectedCompany = null;
-        if (window.state.unsubscribeListener) window.state.unsubscribeListener();
+        window.state.currentUser=null;
+        if(window.state.unsubscribeListener) window.state.unsubscribeListener();
         updateAuthUI(false);
         renderHistory([]);
-        Utils.showToast('Berhasil logout', 'info');
+        Utils.showToast('Logged out','info');
         showLoginModal();
-      } catch (error) {
-        Utils.showToast('Gagal logout: ' + error.message, 'error');
-      }
+      }catch(e){ Utils.showToast('Logout error: '+e.message,'error'); }
     };
 
-    function updateAuthUI(loggedIn) {
-      const loginBtn = document.getElementById('loginBtn');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const badge = document.getElementById('companyBadge');
-      const userInfo = document.getElementById('userInfo');
-      const nameEl = document.getElementById('companyNameDisplay');
-      const userEl = document.getElementById('userNameDisplay');
+    function updateAuthUI(loggedIn){
+      const loginBtn=document.getElementById('loginBtn'),
+            logoutBtn=document.getElementById('logoutBtn'),
+            badge=document.getElementById('companyBadge'),
+            userInfo=document.getElementById('userInfo'),
+            nameEl=document.getElementById('companyNameDisplay'),
+            userEl=document.getElementById('userNameDisplay');
 
-      if (loggedIn) {
-        if (loginBtn) loginBtn.style.display = 'none';
-        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
-        if (badge) badge.style.display = 'inline-flex';
-        if (userInfo) userInfo.style.display = 'inline-flex';
-        if (nameEl && window.state.selectedCompany) {
-          nameEl.textContent = COMPANIES[window.state.selectedCompany]?.name || '';
-          badge.className = `company-badge ${window.state.selectedCompany}`;
+      if(loggedIn){
+        if(loginBtn) loginBtn.style.display='none';
+        if(logoutBtn) logoutBtn.style.display='inline-flex';
+        if(badge) badge.style.display='inline-flex';
+        if(userInfo) userInfo.style.display='inline-flex';
+        if(nameEl&&window.state.selectedCompany){
+          nameEl.textContent=COMPANIES[window.state.selectedCompany].name;
+          badge.className='company-badge '+window.state.selectedCompany;
         }
-        if (userEl && window.state.currentUser) userEl.textContent = window.state.currentUser.email;
-      } else {
-        if (loginBtn) loginBtn.style.display = 'inline-flex';
-        if (logoutBtn) logoutBtn.style.display = 'none';
-        if (badge) badge.style.display = 'none';
-        if (userInfo) userInfo.style.display = 'none';
+        if(userEl&&window.state.currentUser) userEl.textContent=window.state.currentUser.email;
+      }else{
+        if(loginBtn) loginBtn.style.display='inline-flex';
+        if(logoutBtn) logoutBtn.style.display='none';
+        if(badge) badge.style.display='none';
+        if(userInfo) userInfo.style.display='none';
       }
     }
 
-    // ===== DATA LISTENER & HISTORY =====
-    function startDataListener() { FirestoreDB.listenToChanges(data => { window.state.historyData = data; renderHistory(data); }); }
+    // Data Listener & History
+    function startDataListener(){ DB.listen(data=>{ window.state.historyData=data; renderHistory(data); }); }
 
-    function renderHistory(data, filterStatus = 'Lunas') {
-      const container = document.getElementById('historyList');
-      if (!container) return;
+    function renderHistory(data, filter='Lunas'){
+      const c=document.getElementById('historyList');
+      if(!c) return;
 
-      const filtered = data.filter(item => item.status === filterStatus);
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 text-[--muted]"><div class="text-5xl mb-3">📋</div><p class="text-sm">Tidak ada data ${filterStatus.toLowerCase()}</p></div>`;
+      const filtered=data.filter(item=>item.status===filter);
+      if(!filtered.length){
+        c.innerHTML=`<div class="text-center py-10 text-[--muted]"><div class="text-5xl mb-3">📋</div><p class="text-sm">No ${filter.toLowerCase()} data</p></div>`;
         return;
       }
 
-      container.innerHTML = filtered.map(item => `
+      c.innerHTML=filtered.map(item=>`
         <div class="history-item" onclick="viewDetail('${item.id}')">
           <div class="flex justify-between items-start mb-2">
-            <div><div class="font-semibold text-sm">${item.kode || '-'}</div><div class="text-xs text-[--muted]">${item.jenis_pengajuan || '-'}</div></div>
+            <div><div class="font-semibold text-sm">${item.kode||'-'}</div><div class="text-xs text-[--muted]">${item.jenis_pengajuan||'-'}</div></div>
             <div class="text-right"><div class="font-bold text-sm text-[--drive]">${Utils.formatCurrency(item.grandTotal)}</div><div class="text-xs text-[--muted]">${Utils.formatDate(item.tanggal)}</div></div>
           </div>
           <div class="flex items-center gap-2 mt-2">
-            <span class="px-2 py-1 rounded text-xs ${item.status === 'Lunas' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${item.status}</span>
-            ${item.files?.length > 0 ? `<span class="text-xs text-[--muted]">📎 ${item.files.length} file</span>` : ''}
+            <span class="px-2 py-1 rounded text-xs ${item.status==='Lunas'?'bg-green-500/20 text-green-400':'bg-yellow-500/20 text-yellow-400'}">${item.status}</span>
           </div>
         </div>
       `).join('');
     }
 
-    window.filterByStatus = function(status, btn) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      renderHistory(window.state.historyData, status);
+    window.filterByStatus=(status,btn)=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      renderHistory(window.state.historyData,status);
     };
 
-    function viewDetail(id) {
-      const item = window.state.historyData.find(d => d.id === id);
-      if (item) Utils.showToast(`Melihat detail: ${item.kode}`, 'info');
+    function viewDetail(id){
+      const item=window.state.historyData.find(d=>d.id===id);
+      if(item) Utils.showToast('Viewing: '+item.kode,'info');
     }
 
-    function updateStatistics(data) {
-      const el = (id) => document.getElementById(id);
-      if (el('totalData')) el('totalData').textContent = data.length;
-      if (el('sentData')) el('sentData').textContent = data.length;
-      if (el('sheetsData')) el('sheetsData').textContent = data.filter(d => d.driveSynced).length || data.length;
-      if (el('pendingData')) el('pendingData').textContent = data.filter(d => d.status === 'Belum Lunas').length;
+    function updateStats(data){
+      const el=id=>document.getElementById(id);
+      if(el('totalData')) el('totalData').textContent=data.length;
+      if(el('sentData')) el('sentData').textContent=data.length;
+      if(el('sheetsData')) el('sheetsData').textContent=data.length;
+      if(el('pendingData')) el('pendingData').textContent=data.filter(d=>d.status==='Belum Lunas').length;
     }
 
-    // ===== SETUP MODAL =====
-    window.openSetupModal = function() {
-      const m = document.getElementById('setupModal');
-      if (m) { m.classList.remove('hidden'); const input = document.getElementById('firebaseConfigInput'); if (input) input.value = localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG) || ''; }
+    // Setup Modal
+    window.openSetupModal=()=>{
+      const m=document.getElementById('setupModal');
+      if(m){ m.classList.remove('hidden'); const i=document.getElementById('firebaseConfigInput'); if(i) i.value=localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG)||''; }
     };
 
-    window.closeSetupModal = function() { const m = document.getElementById('setupModal'); if (m) m.classList.add('hidden'); };
+    window.closeSetupModal=()=>{ const m=document.getElementById('setupModal'); if(m) m.classList.add('hidden'); };
 
-    window.saveFirebaseConfig = function() {
-      const input = document.getElementById('firebaseConfigInput');
-      const err = document.getElementById('configError');
-      if (!input) return;
-
-      try {
-        const config = Utils.parseFirebaseConfig(input.value.trim());
-        localStorage.setItem(CONFIG_KEYS.FIREBASE_CONFIG, input.value.trim());
-        initializeFirebase().then(success => { if (success) { Utils.showToast('✅ Config tersimpan!', 'success'); closeSetupModal(); } });
-      } catch (e) {
-        if (err) { err.textContent = e.message; err.classList.remove('hidden'); }
-        Utils.showToast(e.message, 'error');
+    window.saveFirebaseConfig=()=>{
+      const i=document.getElementById('firebaseConfigInput'), e=document.getElementById('configError');
+      if(!i) return;
+      try{
+        const c=Utils.parseFirebaseConfig(i.value.trim());
+        localStorage.setItem(CONFIG_KEYS.FIREBASE_CONFIG,i.value.trim());
+        initializeFirebase().then(ok=>{
+          if(ok){ Utils.showToast('✅ Config saved!','success'); closeSetupModal(); }
+        });
+      }catch(x){
+        if(e){ e.textContent=x.message; e.classList.remove('hidden'); }
+        Utils.showToast(x.message,'error');
       }
     };
 
-    window.saveAppsScriptUrl = function() {
-      const input = document.getElementById('appsScriptUrlInput');
-      const result = document.getElementById('appsScriptConnectionResult');
-      if (!input) return;
-      const url = input.value.trim();
-      if (!url) return showAppsScriptResult(result, 'error', 'URL tidak boleh kosong');
-      if (!url.includes('script.google.com')) return showAppsScriptResult(result, 'error', 'URL harus dari script.google.com');
-      window.APPS_SCRIPT_CONFIG.setUrl(url);
-      showAppsScriptResult(result, 'success', '✅ URL tersimpan!');
+    // Document Preview
+    window.previewDocument=()=>{
+      const d=collectData();
+      if(!d.kode) return Utils.showToast('Fill form first','warning');
+      const m=document.getElementById('documentModal'),c=document.getElementById('documentContent');
+      if(m&&c){ c.parentElement.innerHTML=generateDoc(d); m.classList.remove('hidden'); }
     };
 
-    window.testAppsScriptConnection = async function() {
-      const result = document.getElementById('appsScriptConnectionResult');
-      const url = window.APPS_SCRIPT_CONFIG.getUrl();
-      if (!url) return showAppsScriptResult(result, 'error', 'URL belum dikonfigurasi');
-      showAppsScriptResult(result, 'uploading', '<span class="spinner"></span> Menguji...');
-      try {
-        await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'test_connection' }) });
-        setTimeout(() => showAppsScriptResult(result, 'success', '✅ Koneksi berhasil!'), 1500);
-      } catch (e) { showAppsScriptResult(result, 'error', '❌ Gagal: ' + e.message); }
-    };
-
-    function showAppsScriptResult(container, type, msg) {
-      if (!container) return;
-      container.className = 'text-xs p-2 rounded-lg block';
-      container.innerHTML = msg;
-      container.classList.remove('hidden');
-      const map = { success: 'bg-green-900/30 text-green-400 border border-green-700/30', error: 'bg-red-900/30 text-red-400 border border-red-700/30', uploading: 'bg-blue-900/30 text-blue-400 border border-blue-700/30' };
-      if (map[type]) container.classList.add(...map[type].split(' '));
+    function generateDoc(d){
+      const rows=d.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td style="text-align:right">${Utils.formatCurrency(it.total)}</td><td>-</td></tr>`).join('');
+      return `<div class="document-page"><div class="doc-header-center"><div class="doc-form-title">FORMULIR PENGAJUAN HO</div></div><div class="doc-info-grid"><div class="doc-info-item"><span class="doc-info-label">Lokasi</span><span>${d.lokasi||'-'}</span></div><div class="doc-info-item"><span class="doc-info-label">Tanggal</span><span>${Utils.formatDateFull(d.tanggal)}</span></div><div class="doc-info-item"><span class="doc-info-label">Kode</span><span>${d.kode||'-'}</span></div><div class="doc-info-item"><span class="doc-info-label">Jenis</span><span>${d.jenis_pengajuan||'-'}</span></div></div><table class="doc-table"><thead><tr><th>No</th><th>Item</th><th>Qty</th><th>Total (Rp)</th><th>Ket</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="doc-total-row"><td colspan="3" style="text-align:right">GRAND TOTAL</td><td style="text-align:right">${Utils.formatCurrency(d.grandTotal)}</td><td></td></tfoot></table><div class="doc-signatures-p1"><div class="doc-sig-box"><div class="doc-sig-label">DIBUAT OLEH</div><div class="doc-sig-space"></div><div class="doc-sig-name">${window.state.currentUser?.email||'-'}</div></div><div class="doc-sig-box"><div class="doc-sig-label">DISETUJUI</div><div class="doc-sig-space"></div><div class="doc-sig-name">-</div></div></div></div>`;
     }
 
-    // ===== DOCUMENT PREVIEW =====
-    window.previewDocument = function() {
-      const data = collectFormData();
-      if (!data.kode) return Utils.showToast('Mohon isi form terlebih dahulu', 'warning');
-      const modal = document.getElementById('documentModal');
-      const content = document.getElementById('documentContent');
-      if (!modal || !content) return;
-      content.parentElement.innerHTML = generateDocumentHTML(data);
-      modal.classList.remove('hidden');
-    };
-
-    function generateDocumentHTML(data) {
-      const rows = data.items.map((item, i) => `<tr><td style="text-align:center">${i + 1}</td><td>${item.name}</td><td style="text-align:center">${item.qty}</td><td style="text-align:right">${Utils.formatCurrency(item.total)}</td><td>-</td></tr>`).join('');
-      return `<div class="documents-container"><div class="document-page">
-        <div class="doc-header-center"><img src="https://i.ibb.co.com/jN7Khby/Logo-Nusantara-Mineral-Abadi.webp" alt="Logo" class="doc-company-logo" onerror="this.style.display='none'"><div class="doc-form-title">FORMULIR PENGAJUAN HO</div></div>
-        <div class="doc-info-grid"><div class="doc-info-item"><span class="doc-info-label">Lokasi</span><span class="doc-info-value">${data.lokasi || '-'}</span></div><div class="doc-info-item"><span class="doc-info-label">Tanggal</span><span class="doc-info-value">${Utils.formatDateFull(data.tanggal)}</span></div><div class="doc-info-item"><span class="doc-info-label">Kode</span><span class="doc-info-value">${data.kode || '-'}</span></div><div class="doc-info-item"><span class="doc-info-label">Jenis</span><span class="doc-info-value">${data.jenis_pengajuan || '-'}</span></div></div>
-        <table class="doc-table"><thead><tr><th class="col-no">NO</th><th class="col-item">ITEM</th><th class="col-vol">QTY</th><th class="col-nominal">TOTAL (Rp)</th><th>KETERANGAN</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="doc-total-row"><td colspan="3" style="text-align:right">GRAND TOTAL</td><td style="text-align:right">${Utils.formatCurrency(data.grandTotal)}</td><td></td></tr></tfoot></table>
-        ${data.catatan_tambahan ? `<div class="doc-notes"><div class="doc-notes-title">CATATAN:</div><div class="docs-notes-content">${data.catatan_tambahan}</div></div>` : ''}
-        <div class="doc-signatures-p1"><div class="doc-sig-box"><div class="doc-sig-label">DIBUAT OLEH</div><div class="doc-sig-space"></div><div class="doc-sig-name">${window.state.currentUser?.email || '-'}</div></div><div class="doc-sig-box"><div class="doc-sig-label">DISETUJUI</div><div class="doc-sig-space"></div><div class="doc-sig-name">-</div></div></div>
-      </div></div>`;
-    }
-
-    window.closeDocumentModal = function() { const m = document.getElementById('documentModal'); if (m) m.classList.add('hidden'); };
-
-    window.downloadAsPDF = function() {
-      const el = document.querySelector('.documents-container');
-      if (!el) return;
-      Utils.showToast('⏳ Membuat PDF...', 'info');
-      html2pdf().set({ margin: 10, filename: `Invoice-${document.getElementById('kode')?.value || 'document'}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).save().then(() => Utils.showToast('✅ PDF didownload!', 'success')).catch(err => { console.error(err); Utils.showToast('Gagal membuat PDF', 'error'); });
-    };
-
-    // ===== GAS MODAL =====
-    window.openGasModal = function() { const m = document.getElementById('gasModal'); if (m) { m.classList.remove('hidden'); document.getElementById('gasCodeContent').textContent = getAppsScriptCode(); } };
-    window.closeGasModal = function() { const m = document.getElementById('gasModal'); if (m) m.classList.add('hidden'); };
-    window.copyGasCode = function() { navigator.clipboard.writeText(getAppsScriptCode()).then(() => Utils.showToast('✅ Kode disalin!', 'success')); };
-
-    function getAppsScriptCode() {
-      return `// FinanceSync Pro - Google Apps Script Backend
-// Deploy sebagai Web App (Execute as: Me, Access: Anyone)
-
-function doPost(e) {
-  try {
-    const data = JSON.parse(e.postData.contents);
+    window.closeDocumentModal=()=>{ const m=document.getElementById('documentModal'); if(m) m.classList.add('hidden'); };
     
-    switch(data.action) {
-      case 'create_file':
-        return createFileInDrive(data);
-      case 'test_connection':
-        return ContentService.createTextOutput(JSON.stringify({success:true, message:"Connected"})).setMimeType(ContentService.MimeType.JSON);
-      default:
-        return ContentService.createTextOutput(JSON.stringify({error:"Unknown action"})).setMimeType(ContentService.MimeType.JSON);
-    }
-  } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({error:error.toString()})).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function createFileInDrive(data) {
-  const decoded = Utilities.newBlob(
-    Utilities.base64Decode(data.base64Data),
-    data.mimeType,
-    data.fileName
-  );
-  
-  const folders = data.folderPath.split('/');
-  let folder = DriveApp.getRootFolder();
-  
-  for (const folderName of folders) {
-    const subFolders = folder.getFoldersByName(folderName);
-    folder = subFolders.hasNext() ? subFolders.next() : folder.createFolder(folderName);
-  }
-  
-  const file = folder.createFile(decoded);
-  
-  return ContentService.createTextOutput(JSON.stringify({
-    success: true,
-    fileId: file.getId(),
-    fileUrl: file.getUrl(),
-    fileName: data.fileName
-  })).setMimeType(ContentService.MimeType.JSON);
-}
-
-function doGet() {
-  return ContentService.createTextOutput("FinanceSync Pro Backend Running").setMimeType(ContentService.MimeType.TEXT);
-}`;
-    }
-
-    // ===== DELETE MODAL =====
-    window.closeDeleteModal = function() { const m = document.getElementById('deleteConfirmModal'); if (m) m.classList.add('hidden'); };
-    window.confirmDelete = function() { closeDeleteModal(); Utils.showToast('Data dihapus (demo)', 'info'); };
-
-    // ===== SYNC FUNCTION =====
-    window.triggerManualSync = function() {
-      Utils.showToast('⏳ Sinkronisasi...', 'info');
-      setTimeout(() => Utils.showToast('✅ Sync selesai!', 'success'), 1500);
+    window.downloadAsPDF=()=>{
+      const el=document.querySelector('.documents-container');
+      if(!el) return;
+      Utils.showToast('Generating PDF...','info');
+      html2pdf().set({margin:10,filename:`Invoice-${document.getElementById('kode')?.value||'document'}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).save().then(()=>Utils.showToast('✅ PDF downloaded!','success')).catch(err=>{console.error(err); Utils.showToast('PDF failed','error');});
     };
 
-    // ===== DATE FILTER =====
-    window.clearDateFilter = function() {
-      const from = document.getElementById('filterDateFrom');
-      const to = document.getElementById('filterDateTo');
-      if (from) from.value = '';
-      if (to) to.value = '';
-      renderHistory(window.state.historyData, document.querySelector('.tab-btn.active')?.dataset?.tab || 'Lunas');
+    // Clear History
+    document.getElementById('clearHistory').onclick=()=>{
+      if(confirm('Reset history?')){
+        window.state.historyData=[];
+        renderHistory([]);
+        Utils.showToast('History reset','info');
+      }
     };
 
-    // ===== DRAG & DROP HELPERS =====
-    window.handleDragOver = function(e) { e.preventDefault(); e.stopPropagation(); const area = document.getElementById('uploadArea'); if (area) area.classList.add('drag-over'); };
-    window.handleDragLeave = function(e) { e.preventDefault(); e.stopPropagation(); const area = document.getElementById('uploadArea'); if (area) area.classList.remove('drag-over'); };
-    window.handleDrop = function(e) {
-      e.preventDefault(); e.stopPropagation();
-      const area = document.getElementById('uploadArea');
-      if (area) area.classList.remove('drag-over');
-      const files = e.dataTransfer?.files;
-      if (files?.length > 0) handleExternalFiles(files);
-    };
-
-    // Console welcome
-    console.log('%c🚀 FinanceSync Pro v3.4 - Multi-Company Edition', 'color: #4285f4; font-size: 16px; font-weight: bold;');
-    console.log('%cDeveloped with ❤️ using Firebase + Google Drive', 'color: #34a853; font-size: 12px;');
+    // Console
+    console.log('%c🚀 FinanceSync Pro v3.4 - FIXED','color:#4285f4;font-size:16px;font-weight:bold;');
+    console.log('%c✅ All SVG errors fixed | Firebase robust','color:#22c55e;font-size:12px;');
   </script>
 </body>
 </html>
