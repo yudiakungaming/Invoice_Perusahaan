@@ -1,30 +1,39 @@
 /**
  * ============================================
- * FinanceSync Pro v3.3 - Main Application Logic
+ * FinanceSync Pro v3.4 - Main Application Logic
  * ============================================
  * File ini berisi semua logika UI, form handling, rendering,
- * dan interaksi pengguna. Ini adalah "brain" dari aplikasi.
+ * dan interaksi pengguna.
  * 
- * Version: 3.3.1
- * Update: Integrated Google Drive Upload via Apps Script
- * Date: December 2024
+ * Version: 3.4.0
+ * Update: Added Multi-Company Login & Authentication Integration
+ * Date: April 2026
+ *
+ * ★ PERUBAHAN (v3.4):
+ *    - Integrasi dengan Firebase Authentication (login/logout)
+ *    - Cek company session sebelum operasi apa pun
+ *    - Tampilkan company badge di header
+ *    - Form login modal untuk akses multi-company
  */
 
 // ==================== INITIALIZATION ====================
 
 /**
  * Fungsi inisialisasi utama aplikasi
- * Dipanggil saat DOM sudah siap (di akhir HTML)
+ * ★ UPDATE (v3.4): Sekarang cek auth state terlebih dahulu!
  */
 function init() {
   try {
-    console.log('[App] Initializing FinanceSync Pro v3.3...');
+    console.log('[App] Initializing FinanceSync Pro v3.4 (Multi-Company)...');
     
-    // Cache semua DOM elements ke variabel global 'elements'
+    // Cache semua DOM elements
     cacheDOMElements();
     
     // Load konfigurasi tersimpan
     loadSavedConfigs();
+    
+    // ★★★ BARU (v3.4): Setup Login UI Elements ★★★
+    setupLoginUI();
     
     // Set default tanggal ke hari ini
     const tanggalInput = document.getElementById('tanggal');
@@ -41,7 +50,7 @@ function init() {
     // Setup semua event listeners
     setupEventListeners();
     
-    // Inisialisasi koneksi Firebase
+    // Inisialisasi koneksi Firebase (ini juga akan restore auth session)
     initConnection();
     
     // Auto-generate nomor invoice setelah terhubung
@@ -50,7 +59,7 @@ function init() {
     // Mulai drive status polling
     startDriveStatusPolling();
     
-    // ★ NEW: Initialize upload state
+    // Initialize upload state
     initUploadState();
     
     // Setup cleanup saat page unload
@@ -68,60 +77,472 @@ function init() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ★ TAMBAHAN BARU: Initialize Upload State
+// ★★★ TAMBAHAN BARU (v3.4): LOGIN UI SETUP & MANAGEMENT ★★★
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Inisialisasi state untuk upload file
+ * Setup elemen-elemen UI untuk login dan company badge
+ * Dipanggil dari init()
  */
-function initUploadState() {
-  // Reset upload state
-  if (typeof state !== 'undefined') {
-    state.driveIntegration = state.driveIntegration || {
-      isUploading: false,
-      uploadProgress: 0,
-      lastUploadedFile: null,
-      driveLink: '',
-      uploadError: null
-    };
-  }
+function setupLoginUI() {
+  console.log('[Login UI] Setting up login elements...');
   
-  // Display max size info jika ada element
-  const maxSizeEl = document.getElementById('maxSizeDisplay');
-  if (maxSizeEl && typeof UPLOAD_CONFIG !== 'undefined') {
-    maxSizeEl.textContent = UPLOAD_CONFIG.maxSizeDisplay;
-  }
+  // Cek apakah elemen login sudah ada di HTML, jika tidak buat dinamis
+  var loginBtn = document.getElementById('loginBtn');
+  var logoutBtn = document.getElementById('logoutBtn');
+  var userInfo = document.getElementById('userInfo');
+  var companyBadge = document.getElementById('companyBadge');
   
-  // Check Apps Script status
-  updateAppsScriptStatusUI();
-}
-
-/**
- * Update UI status Apps Script di architecture banner
- */
-function updateAppsScriptStatusUI() {
-  const archContainer = document.getElementById('archAppsScriptStatus');
-  const urlDisplay = document.getElementById('archAppsScriptUrlDisplay');
-  
-  const appsScriptUrl = getAppsScriptUrl ? getAppsScriptUrl() : 
-                         (state?.appsScriptUrl || '');
-  
-  if (archContainer && appsScriptUrl) {
-    archContainer.style.display = 'block';
-    if (urlDisplay) {
-      urlDisplay.textContent = appsScriptUrl.length > 30 
-        ? appsScriptUrl.substring(0, 30) + '...' 
-        : appsScriptUrl;
-      urlDisplay.title = appsScriptUrl;
+  // Jika belum ada di HTML, buat secara dinamis
+  if (!loginBtn) {
+    createLoginUIDynamic();
+  } else {
+    // Sudah ada, setup event listener
+    if (loginBtn) {
+      loginBtn.addEventListener('click', showLoginModal);
+    }
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', handleLogout);
     }
   }
 }
 
-// ==================== DOM ELEMENT CACHING ====================
+/**
+ * Buat elemen login UI secara dinamis (jika tidak ada di HTML)
+ */
+function createLoginUIDynamic() {
+  console.log('[Login UI] Creating dynamic login elements...');
+  
+  // Cari tempat untuk menyisipkan (biasanya di header/navbar)
+  var headerArea = document.querySelector('header') || 
+                   document.querySelector('.navbar') || 
+                   document.querySelector('body > div:first-child');
+  
+  if (!headerArea) {
+    console.warn('[Login UI] Tidak menemukan area header, skip dynamic creation');
+    return;
+  }
+  
+  // Buat container untuk auth info
+  var authContainer = document.createElement('div');
+  authContainer.id = 'authContainer';
+  authContainer.className = 'auth-container';
+  authContainer.innerHTML = `
+    <div id="companyBadge" class="company-badge" style="display:none;">
+      <span class="company-icon">🏢</span>
+      <span class="company-name"></span>
+    </div>
+    <div id="userInfo" class="user-info" style="display:none;">
+      <span class="user-name"></span>
+    </div>
+    <button id="loginBtn" class="btn-login" title="Login">
+      🔐 Login
+    </button>
+    <button id="logoutBtn" class="btn-logout" style="display:none;" title="Logout">
+      🚪 Logout
+    </button>
+  `;
+  
+  // Insert di awal header
+  headerArea.insertBefore(authContainer, headerArea.firstChild);
+  
+  // Style sederhana (bisa di-override di CSS)
+  var style = document.createElement('style');
+  style.textContent = `
+    .auth-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .company-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(37, 99, 235, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(37, 99, 235, 0.3);
+    }
+    .user-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #e2e8f0;
+    }
+    .btn-login, .btn-logout {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-login {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+    }
+    .btn-login:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Login Modal Styles */
+    .login-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    .login-modal-overlay.hidden { display: none; }
+    .login-modal {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      border: 1px solid #334155;
+    }
+    .login-modal h2 {
+      color: white;
+      margin-bottom: 24px;
+      text-align: center;
+      font-size: 22px;
+    }
+    .login-modal .form-group {
+      margin-bottom: 16px;
+    }
+    .login-modal label {
+      display: block;
+      color: #94a3b8;
+      font-size: 13px;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .login-modal input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+    .login-modal input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    .login-btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+    .login-btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4);
+    }
+    .login-btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .login-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      display: none;
+    }
+    .login-error.show { display: block; }
+    .login-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .login-close:hover { color: white; }
+    .login-hint {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .login-company-options {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .login-company-option {
+      flex: 1;
+      padding: 12px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .login-company-option:hover {
+      border-color: #475569;
+    }
+    .login-company-option.selected {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.1);
+    }
+    .login-company-option .icon {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+    .login-company-option .name {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Buat login modal
+  var loginModal = document.createElement('div');
+  loginModal.id = 'loginModal';
+  loginModal.className = 'login-modal-overlay hidden';
+  loginModal.innerHTML = `
+    <div class="login-modal" style="position:relative;">
+      <button class="login-close" onclick="hideLoginModal()">&times;</button>
+      <h2>🔐 Login - FinanceSync Pro</h2>
+      
+      <div id="loginError" class="login-error"></div>
+      
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="admin@nmsa.com atau admin-ipn@gmail.com" autocomplete="email">
+      </div>
+      
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Masukkan password" autocomplete="current-password">
+      </div>
+      
+      <button class="login-btn-submit" id="loginSubmitBtn" onclick="handleLoginForm()">
+        Masuk ke Dashboard
+      </button>
+      
+      <div class="login-hint">
+        📌 Gunakan akun perusahaan Anda untuk login<br>
+        Data akan difilter otomatis sesuai perusahaan
+      </div>
+    </div>
+  `;
+  document.body.appendChild(loginModal);
+  
+  // Attach event listeners
+  setTimeout(function() {
+    var btn = document.getElementById('loginBtn');
+    var outBtn = document.getElementById('logoutBtn');
+    if (btn) btn.addEventListener('click', showLoginModal);
+    if (outBtn) outBtn.addEventListener('click', handleLogout);
+    
+    // Enter key submit
+    var passInput = document.getElementById('loginPassword');
+    if (passInput) {
+      passInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') handleLoginForm();
+      });
+    }
+  }, 100);
+}
 
 /**
- * Cache semua DOM elements yang sering digunakan
- * Ini meningkatkan performa dengan menghindari repeated DOM queries
+ * Tampilkan modal login
+ */
+function showLoginModal() {
+  var modal = document.getElementById('loginModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    
+    // Focus ke email field
+    setTimeout(function() {
+      var emailInput = document.getElementById('loginEmail');
+      if (emailInput) emailInput.focus();
+    }, 200);
+  }
+}
+
+/**
+ * Sembunyikan modal login
+ */
+function hideLoginModal() {
+  var modal = document.getElementById('loginModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    
+    // Clear form
+    var emailInput = document.getElementById('loginEmail');
+    var passInput = document.getElementById('loginPassword');
+    var errorEl = document.getElementById('loginError');
+    if (emailInput) emailInput.value = '';
+    if (passInput) passInput.value = '';
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.remove('show');
+    }
+  }
+}
+
+/**
+ * Handler untuk form login
+ * Dipanggil saat user klik "Masuk" atau tekan Enter
+ */
+async function handleLoginForm() {
+  var emailInput = document.getElementById('loginEmail');
+  var passInput = document.getElementById('loginPassword');
+  var submitBtn = document.getElementById('loginSubmitBtn');
+  var errorEl = document.getElementById('loginError');
+  
+  if (!emailInput || !passInput) return;
+  
+  var email = emailInput.value.trim();
+  var password = passInput.value;
+  
+  // Validasi
+  if (!email || !password) {
+    showLoginError('Mohon isi email dan password!');
+    return;
+  }
+  
+  // Disable button & show loading
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<div class="spinner"></div> Memproses...';
+  }
+  
+  try {
+    // Panggil fungsi login dari firebase-init.js
+    var result = await loginUser(email, password);
+    
+    if (result.success) {
+      // Login berhasil!
+      hideLoginModal();
+      showToast(`✅ Selamat datang! Anda masuk sebagai ${result.companyName}`, 'success');
+      
+      // Restart listener dengan company baru
+      if (typeof applyDateFilter === 'function') {
+        applyDateFilter();
+      }
+      
+    } else {
+      // Login gagal
+      showLoginError(result.error || 'Login gagal. Periksa kembali email dan password.');
+    }
+    
+  } catch (error) {
+    showLoginError('Terjadi kesalahan: ' + error.message);
+  } finally {
+    // Restore button
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Masuk ke Dashboard';
+    }
+  }
+}
+
+/**
+ * Tampilkan error di modal login
+ * @param {string} msg - Pesan error
+ */
+function showLoginError(msg) {
+  var el = document.getElementById('loginError');
+  if (el) {
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+}
+
+/**
+ * Handler untuk logout
+ */
+async function handleLogout() {
+  if (!confirm('Apakah Anda yakin ingin keluar?')) return;
+  
+  try {
+    await logoutUser();
+    
+    // Clear history
+    state.history = [];
+    if (typeof renderHistory === 'function') renderHistory();
+    
+    showToast('👋 Berhasil logout! Silakan login kembali.', 'info');
+    
+  } catch (error) {
+    showToast('Gagal logout: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Cek apakah user bisa melakukan operasi (sudah login & ada company)
+ * @returns {boolean}
+ */
+function canPerformOperation() {
+  if (!isLoggedIn()) {
+    showLoginModal();
+    showToast('Silakan login terlebih dahulu!', 'warning');
+    return false;
+  }
+  
+  if (!getActiveCompanyId()) {
+    showToast('Tidak ada active company! Hubungi admin.', 'error');
+    return false;
+  }
+  
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// END OF LOGIN UI SECTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ==================== DOM ELEMENT CACHING ====================
+/**
+ * Cache semua DOM elements
+ * ★ UPDATE (v3.4): Tambahkan elemen login/company badge
  */
 function cacheDOMElements() {
   elements = {
@@ -156,7 +577,7 @@ function cacheDOMElements() {
     // Config inputs
     firebaseConfigInput: document.getElementById('firebaseConfigInput'),
     configError: document.getElementById('configError'),
-    appsScriptUrlInput: document.getElementById('appsScriptUrlInput'), // ★ NEW
+    appsScriptUrlInput: document.getElementById('appsScriptUrlInput'),
     
     // Validation
     validationError: document.getElementById('validationError'),
@@ -170,14 +591,14 @@ function cacheDOMElements() {
     uploadArea: document.getElementById('uploadArea'),
     fileListDisplay: document.getElementById('fileListDisplay'),
     uploadPlaceholder: document.getElementById('uploadPlaceholder'),
-    selectedFilesActions: document.getElementById('selectedFilesActions'), // ★ NEW
-    selectedFilesCount: document.getElementById('selectedFilesCount'), // ★ NEW
-    uploadProgressContainer: document.getElementById('uploadProgressContainer'), // ★ NEW
-    uploadProgressBar: document.getElementById('uploadProgressBar'), // ★ NEW
-    driveLinkResult: document.getElementById('driveLinkResult'), // ★ NEW
-    driveLinkUrl: document.getElementById('driveLinkUrl'), // ★ NEW
-    uploadStatusText: document.getElementById('uploadStatusText'), // ★ NEW
-    uploadStatsCard: document.getElementById('uploadStatsCard'), // ★ NEW
+    selectedFilesActions: document.getElementById('selectedFilesActions'),
+    selectedFilesCount: document.getElementById('selectedFilesCount'),
+    uploadProgressContainer: document.getElementById('uploadProgressContainer'),
+    uploadProgressBar: document.getElementById('uploadProgressBar'),
+    driveLinkResult: document.getElementById('driveLinkResult'),
+    driveLinkUrl: document.getElementById('driveLinkUrl'),
+    uploadStatusText: document.getElementById('uploadStatusText'),
+    uploadStatsCard: document.getElementById('uploadStatsCard'),
     
     // Sync button
     forceSyncBtn: document.getElementById('forceSyncBtn'),
@@ -201,10 +622,6 @@ function cacheDOMElements() {
 }
 
 // ==================== DATE FILTER DEFAULT ====================
-
-/**
- * Set default date filter ke bulan ini
- */
 function setDefaultDateFilter() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -221,11 +638,6 @@ function setDefaultDateFilter() {
 }
 
 // ==================== AUTO GENERATE INVOICE ====================
-
-/**
- * Auto-generate invoice number setelah Firebase terhubung
- * Menggunakan polling karena koneksi bersifat async
- */
 function generateInvoiceAfterConnection() {
   let attempts = 0;
   const maxAttempts = 20;
@@ -235,6 +647,12 @@ function generateInvoiceAfterConnection() {
 
     if (state.db && state.isConnected) {
       clearInterval(checkInterval);
+
+      // ★★★ BARU (v3.4): Cek juga apakah sudah login & ada company ★★★
+      if (!isLoggedIn() || !getActiveCompanyId()) {
+        console.log('[Auto Invoice] Skip: User belum login atau tidak ada active company');
+        return;
+      }
 
       try {
         const invoice = await autoGenerateInvoice();
@@ -251,13 +669,13 @@ function generateInvoiceAfterConnection() {
       clearInterval(checkInterval);
       console.warn('[Auto Invoice] Max attempts reached, giving up');
     }
-  }, 500); // Check every 500ms
+  }, 500);
 }
 
 // ==================== EVENT LISTENERS SETUP ====================
-
 /**
- * Setup semua event listeners untuk aplikasi
+ * Setup semua event listeners
+ * ★ UPDATE (v3.4): Tambah validasi auth di beberapa action
  */
 function setupEventListeners() {
   
@@ -268,10 +686,14 @@ function setupEventListeners() {
 
   // === PREVIEW BUTTON ===
   if (elements.previewBtn) {
-    elements.previewBtn.addEventListener('click', handlePreview);
+    elements.previewBtn.addEventListener('click', function() {
+      // ★★★ BARU (v3.4): Cek login sebelum preview ★★★
+      if (!canPerformOperation()) return;
+      handlePreview();
+    });
   }
 
-  // === STATUS CHANGE (show/hide payment date) ===
+  // === STATUS CHANGE ===
   if (elements.statusInput) {
     elements.statusInput.addEventListener('change', function(e) {
       if (elements.paymentDateContainer) {
@@ -280,31 +702,18 @@ function setupEventListeners() {
       }
     });
 
-    // Set initial state
     if (elements.statusInput.value !== 'Lunas' && elements.paymentDateContainer) {
       elements.paymentDateContainer.style.display = 'none';
     }
   }
 
-  // === SETUP BUTTON ===
-  if (typeof elements.setupBtn !== 'undefined' && elements.setupBtn) {
-    elements.setupBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      openSetupModal();
-    });
-  }
-
-  // === MODAL CLOSE BUTTONS ===
-  if (elements.setupModal) {
-    elements.setupModal.addEventListener('click', function(e) {
-      if (e.target === elements.setupModal) closeSetupModal();
-    });
-  }
-
   // === CLEAR HISTORY ===
   if (elements.clearHistory) {
     elements.clearHistory.addEventListener('click', function() {
-      if (confirm('Hapus SEMUA data dari Firebase?')) {
+      // ★★★ BARU (v3.4): Cek login sebelum hapus ★★★
+      if (!canPerformOperation()) return;
+      
+      if (confirm('Hapus SEMUA data dari Firebase? (Hanya data company ini)')) {
         deleteAllSubmissions()
           .then(function() {
             showToast('Semua data dihapus', 'success');
@@ -320,11 +729,9 @@ function setupEventListeners() {
   if (elements.tabBtns) {
     elements.tabBtns.forEach(function(btn) {
       btn.addEventListener('click', function() {
-        // Update active state
         elements.tabBtns.forEach(function(b) { b.classList.remove('active'); });
         btn.classList.add('active');
         
-        // Update state dan re-render
         state.currentTab = btn.dataset.tab;
         renderHistory();
       });
@@ -351,27 +758,27 @@ function setupEventListeners() {
 
   // === KEYBOARD SHORTCUTS ===
   document.addEventListener('keydown', function(e) {
-    // Escape key: close all modals
     if (e.key === 'Escape') {
       closeSetupModal();
       closeDocumentModal();
       closeDeleteModal();
       closeGasModal();
+      hideLoginModal(); // ★★★ BARU (v3.4) ★★★
     }
 
-    // Ctrl/Cmd + S: submit form
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
       if (elements.form && !elements.submitBtn.disabled) {
+        // ★★★ BARU (v3.4): Cek login sebelum save ★★★
+        if (!canPerformOperation()) return;
         elements.form.dispatchEvent(new Event('submit'));
       }
     }
 
-    // Ctrl/Cmd + P: preview document
     if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
       if (!elements.documentModal?.classList.contains('show')) {
         e.preventDefault();
-        handlePreview();
+        if (canPerformOperation()) handlePreview(); // ★★★ BARU (v3.4) ★★★
       }
     }
   });
@@ -380,41 +787,42 @@ function setupEventListeners() {
   if (elements.form) {
     elements.form.addEventListener('reset', function() {
       setTimeout(function() {
-        // Reset state
         state.items = [{ ket: '', qty: '', nominal: 0, keterangan: '' }];
         state.selectedFiles = [];
         
-        // Update UI
         updateFileDisplay();
         renderFormItems();
         clearEditMode();
         
-        // Reset tanggal
         const t = document.getElementById('tanggal');
         if (t) t.valueAsDate = new Date();
         
-        // Reset payment date visibility
         if (elements.statusInput?.value !== 'Lunas' && elements.paymentDateContainer) {
           elements.paymentDateContainer.style.display = 'none';
         }
         
-        // Reset submit button
         resetSubmitButton();
-        
-        // ★ NEW: Reset upload area
         hideUploadProgress();
+        
         const driveResult = document.getElementById('driveLinkResult');
         if (driveResult) driveResult.classList.remove('show');
+        
+        // ★★★ BARU (v3.4): Auto-generate invoice baru setelah reset ★★★
+        if (isLoggedIn() && getActiveCompanyId()) {
+          autoGenerateInvoice().then(function(inv) {
+            const ni = document.getElementById('no_invoice');
+            if (inv) ni.value = inv;
+          });
+        }
         
       }, 10);
     });
   }
   
-  // ★ NEW: Apps Script URL input listener
+  // Apps Script URL input listener
   const appsScriptInput = document.getElementById('appsScriptUrlInput');
   if (appsScriptInput) {
     appsScriptInput.addEventListener('change', function() {
-      // Auto-save on change (optional)
       if (this.value.trim()) {
         console.log('[Apps Script URL] Updated:', this.value.substring(0, 50) + '...');
       }
@@ -423,10 +831,6 @@ function setupEventListeners() {
 }
 
 // ==================== FORM ITEMS MANAGEMENT ====================
-
-/**
- * Render form items (barang/jasa) ke DOM
- */
 function renderFormItems() {
   const container = document.getElementById('itemsContainer');
   if (!container) return;
@@ -481,46 +885,25 @@ function renderFormItems() {
     container.appendChild(row);
   });
 
-  // Hitung total otomatis
   calculateTotal();
 }
 
-/**
- * Tambah item baru ke form
- */
 window.addFormItem = function() {
   state.items.push({ ket: '', qty: '', nominal: 0, keterangan: '' });
   renderFormItems();
 };
 
-/**
- * Hapus item dari form
- * @param {number} index - Index item yang akan dihapus
- */
 window.removeFormItem = function(index) {
-  if (state.items.length <= 1) return; // Minimal 1 item
-  
+  if (state.items.length <= 1) return;
   state.items.splice(index, 1);
   renderFormItems();
 };
 
-/**
- * Update nilai item
- * @param {number} index - Index item
- * @param {string} key - Field yang diupdate ('ket', 'qty', 'nominal', 'keterangan')
- * @param {string|number} value - Nilai baru
- */
 window.updateItem = function(index, key, value) {
   state.items[index][key] = value;
-  
-  // Re-calculate total jika nominal berubah
   if (key === 'nominal') calculateTotal();
 };
 
-/**
- * Hitung total nominal semua items
- * @returns {number} Total nominal
- */
 function calculateTotal() {
   const total = state.items.reduce(function(acc, curr) {
     return acc + (parseInt(curr.nominal) || 0);
@@ -533,17 +916,7 @@ function calculateTotal() {
   return total;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ★ UPDATE: FILE UPLOAD HANDLING - Enhanced Version
-//    Support larger files, more formats, better UX
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Handle file selection from input element
- * ★ UPDATED: Support up to 30MB, more formats, better validation
- * 
- * @param {HTMLInputElement} input - File input element
- */
+// ==================== FILE UPLOAD HANDLING ====================
 window.handleFileSelect = function(input) {
   const files = Array.from(input.files);
 
@@ -555,26 +928,20 @@ window.handleFileSelect = function(input) {
 
   console.log('[File Select] Files selected:', files.length);
   
-  // ===== VALIDASI =====
-  
-  // Get max size from config or fallback
   var maxSize = (typeof UPLOAD_CONFIG !== 'undefined') 
     ? UPLOAD_CONFIG.maxSizeBytes 
-    : 30 * 1024 * 1024; // 30MB default
+    : 30 * 1024 * 1024;
   
-  // Validasi setiap file
   var errors = [];
   var validFiles = [];
   
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
     
-    // Use ConfigHelper.validateFile if available, otherwise simple check
     var validation;
     if (typeof validateFile === 'function') {
       validation = validateFile(file);
     } else {
-      // Simple fallback validation
       validation = {
         valid: file.size <= maxSize,
         errors: file.size > maxSize 
@@ -588,7 +955,6 @@ window.handleFileSelect = function(input) {
     } else {
       validFiles.push(file);
       
-      // Warning untuk file besar (>10MB)
       var warningSize = (typeof UPLOAD_CONFIG !== 'undefined') 
         ? UPLOAD_CONFIG.warningSizeBytes 
         : 10 * 1024 * 1024;
@@ -599,38 +965,29 @@ window.handleFileSelect = function(input) {
     }
   }
   
-  // Tampilkan error jika ada
   if (errors.length > 0) {
     showToast('❌ ' + errors[0], 'error');
-    
-    // Jika ada yang tidak valid, clear input
     if (validFiles.length === 0) {
       input.value = '';
       return;
     }
   }
   
-  // ===== PROSES FILE YANG VALID =====
-  
-  // Reset selected files
   state.selectedFiles = [];
   let processed = 0;
   
   console.log('[File Select] Processing', validFiles.length, 'valid files...');
 
-  // Convert each file to Base64
   validFiles.forEach(function(file, index) {
-    // Use fileToBase64 from utils if available, otherwise manual
     var convertPromise;
     
     if (typeof fileToBase64 === 'function') {
       convertPromise = fileToBase64(file);
     } else {
-      // Fallback manual conversion
       convertPromise = new Promise(function(resolve, reject) {
         var reader = new FileReader();
         reader.onload = function(e) {
-          resolve(e.target.result.split(',')[1]); // Remove data URI prefix
+          resolve(e.target.result.split(',')[1]);
         };
         reader.onerror = function() { reject(new Error('Gagal membaca file')); };
         reader.readAsDataURL(file);
@@ -648,12 +1005,10 @@ window.handleFileSelect = function(input) {
 
       processed++;
 
-      // Update display when all files processed
       if (processed === validFiles.length) {
         updateFileDisplay();
         console.log('[File Select] Ready:', state.selectedFiles.length, 'files');
         
-        // Show success toast
         if (validFiles.length > 0) {
           showToast(
             validFiles.length + ' file siap diupload (' + 
@@ -674,31 +1029,15 @@ window.handleFileSelect = function(input) {
   });
 };
 
-/**
- * ★ TAMBAHAN BARU: Handle external files (drag & drop)
- * Dipanggil dari inline script di HTML saat drag & drop
- * 
- * @param {FileList} files - FileList dari drop event
- */
 window.handleExternalFiles = function(files) {
   if (!files || files.length === 0) return;
   
-  console.log('[External Files] Received', files.length, 'files from drag/drop');
-  
-  // Convert FileList to array and process
   var fileArray = Array.from(files);
-  
-  // Simulate file input selection
   var fakeInput = { files: fileArray };
   window.handleFileSelect(fakeInput);
 };
 
 // ==================== FILE DISPLAY FUNCTIONS ====================
-
-/**
- * Update tampilan daftar file yang di-upload
- * ★ UPDATED: Gunakan renderSelectedFilesList dari utils jika ada
- */
 function updateFileDisplay() {
   const display = elements.fileListDisplay;
   const placeholder = elements.uploadPlaceholder;
@@ -709,25 +1048,20 @@ function updateFileDisplay() {
   if (!display || !placeholder || !area) return;
 
   if (state.selectedFiles.length > 0) {
-    // Sembunyikan placeholder, tampilkan daftar file
     placeholder.style.display = 'none';
     area.classList.add('has-file');
 
-    // Show actions bar
     if (actionsBar) actionsBar.style.display = 'flex';
     if (countEl) countEl.textContent = state.selectedFiles.length + ' file dipilih';
 
-    // ★ NEW: Use renderSelectedFilesList from utils if available
     if (typeof renderSelectedFilesList === 'function') {
       renderSelectedFilesList(state.selectedFiles);
     } else {
-      // Fallback: Simple list display
       display.innerHTML = state.selectedFiles.map(function(file, index) {
         const sizeStr = (typeof formatFileSize === 'function') 
           ? formatFileSize(file.size) 
           : (file.size / 1024).toFixed(1) + ' KB';
         
-        // Icon berdasarkan tipe file
         let icon = '📄';
         if (file.type.startsWith('image/')) icon = '🖼️';
         else if (file.type.includes('pdf')) icon = '📕';
@@ -757,31 +1091,32 @@ function updateFileDisplay() {
     }
     
   } else {
-    // Tampilkan placeholder
     placeholder.style.display = 'block';
     area.classList.remove('has-file');
     display.innerHTML = '';
     
-    // Hide actions bar
     if (actionsBar) actionsBar.style.display = 'none';
     
-    // Hide drive link result
     const driveResult = document.getElementById('driveLinkResult');
     if (driveResult) driveResult.classList.remove('show');
   }
 }
 
 // ==================== FORM VALIDATION ====================
-
-/**
- * Validasi form sebelum submit
- * @returns {boolean} True jika valid
- */
 function validateForm() {
   const errors = [];
   const fd = new FormData(elements.form);
 
-  // Validasi field wajib
+  // ★★★ BARU (v3.4): Cek login dulu! ★★★
+  if (!isLoggedIn()) {
+    errors.push('Anda belum login! Silakan login terlebih dahulu.');
+    showLoginModal();
+  }
+  
+  if (!getActiveCompanyId()) {
+    errors.push('Tidak ada active company! Hubungi administrator.');
+  }
+
   if (!fd.get('tanggal')) errors.push('Tanggal Invoice wajib diisi');
   if (!fd.get('lokasi')) errors.push('Lokasi wajib diisi');
   if (!fd.get('jenis_pengajuan')) errors.push('Jenis Pengajuan wajib diisi');
@@ -789,7 +1124,6 @@ function validateForm() {
   if (!fd.get('status')) errors.push('Status Pembayaran wajib dipilih');
   if (!fd.get('dibayarkan_kepada')) errors.push('Dibayarkan Kepada wajib diisi');
 
-  // Validasi items
   if (state.items.length === 0 || state.items.every(i => !i.ket.trim())) {
     errors.push('Minimal 1 item barang/jasa harus diisi');
   } else {
@@ -801,25 +1135,18 @@ function validateForm() {
     });
   }
 
-  // Tampilkan error jika ada
   if (errors.length > 0 && elements.validationErrorList && elements.validationError) {
     elements.validationErrorList.innerHTML = errors.map(e => `<li>${escapeHtml(e)}</li>`).join('');
     elements.validationError.classList.add('show');
     return false;
   }
 
-  // Sembunyikan error jika valid
   if (elements.validationError) elements.validationError.classList.remove('show');
   
   return true;
 }
 
 // ==================== GET FORM DATA ====================
-
-/**
- * Kumpulkan data dari form ke object
- * @returns {Object} Data form dalam format object
- */
 function getFormData() {
   const fd = new FormData(elements.form);
 
@@ -843,26 +1170,24 @@ function getFormData() {
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ★ UPDATE: FORM SUBMISSION HANDLER - Integrated with Google Drive
-// ═══════════════════════════════════════════════════════════════════════════
-
+// ==================== FORM SUBMISSION HANDLER ====================
 /**
  * Handler untuk form submission
- * ★ UPDATED: Sekarang mendukung save via Apps Script (dengan file upload)
- * 
- * @param {Event} e - Submit event
+ * ★ UPDATE (v3.4): Validasi auth di awal
  */
 async function handleSubmit(e) {
   e.preventDefault();
 
-  // Validasi form
+  // ★★★ BARU (v3.4): Cek login & company ★★★
+  if (!canPerformOperation()) {
+    return;
+  }
+
   if (!validateForm()) {
     showToast('Mohon lengkapi semua field yang ditandai *', 'error');
     return;
   }
 
-  // Cek koneksi Firebase
   if (!state.db) {
     showToast('Firebase belum terhubung. Setup dulu.', 'error');
     openSetupModal();
@@ -874,12 +1199,10 @@ async function handleSubmit(e) {
   let saveSuccess = false;
 
   try {
-    // ===== MODE: CREATE NEW =====
     if (!isEditMode) {
       elements.submitBtn.disabled = true;
       elements.submitBtn.innerHTML = '<div class="spinner"></div><span>Mengecek duplikat...</span>';
 
-      // Cek duplikat
       if (await checkDuplicate(data)) {
         showToast('Transaksi duplikat!', 'error');
         elements.submitBtn.disabled = false;
@@ -887,7 +1210,6 @@ async function handleSubmit(e) {
         return;
       }
 
-      // Auto-generate invoice jika kosong
       if (!data.no_invoice.trim()) {
         elements.submitBtn.innerHTML = '<div class="spinner"></div><span>Generate No Invoice...</span>';
         data.no_invoice = await autoGenerateInvoice();
@@ -897,11 +1219,9 @@ async function handleSubmit(e) {
       }
     }
 
-    // ===== PREPARE DATA FOR SAVE =====
     elements.submitBtn.disabled = true;
     elements.submitBtn.innerHTML = '<div class="spinner"></div><span>Menyimpan...</span>';
 
-    // ★ NEW: Determine save method based on conditions
     var hasFiles = state.selectedFiles && state.selectedFiles.length > 0;
     var useAppsScript = isAppsScriptConfigured && typeof isAppsScriptConfigured === 'function' 
                         ? isAppsScriptConfigured() 
@@ -911,28 +1231,23 @@ async function handleSubmit(e) {
       hasFiles: hasFiles,
       fileCount: state.selectedFiles ? state.selectedFiles.length : 0,
       useAppsScript: useAppsScript,
-      isEditMode: isEditMode
+      isEditMode: isEditMode,
+      companyId: getActiveCompanyId() // ★★★ LOG (v3.4) ★★★
     });
 
     let savedDocId;
 
-    // ===== STRATEGY SELECTION =====
-    
     if (hasFiles && useAppsScript && !isEditMode) {
-      // ★ NEW PATH: Save with file via Apps Script (RECOMMENDED)
       console.log('[Submit] Using: smartSaveSubmission with file...');
       
       elements.submitBtn.innerHTML = '<div class="spinner"></div><span>Mengupload file ke Google Drive...</span>';
       
-      // Update progress
       if (typeof updateUploadProgress === 'function') {
         updateUploadProgress(20, 'Mempersiapkan data...');
       }
       
-      // Get first file (or implement multiple file support later)
       var fileToUpload = state.selectedFiles[0];
       
-      // Use smartSaveSubmission or saveSubmissionWithFile
       var saveResult;
       if (typeof smartSaveSubmission === 'function') {
         saveResult = await smartSaveSubmission(data, fileToUpload);
@@ -949,14 +1264,12 @@ async function handleSubmit(e) {
       savedDocId = saveResult.docId;
       console.log('[Submit] ✅ Saved via Apps Script! ID:', savedDocId);
       
-      // Show appropriate message
       showToast(
         saveResult.message || '✅ Data & file berhasil disimpan!',
         'drive'
       );
       
     } else if (hasFiles && !useAppsScript) {
-      // ⚠️ FALLBACK: Has file but no Apps Script configured
       console.warn('[Submit] Has file but Apps Script not configured!');
       
       showToast(
@@ -964,16 +1277,11 @@ async function handleSubmit(e) {
         'Configure Apps Script URL di Setup untuk mengaktifkan upload.',
         'warning'
       );
-      
-      // Continue with Firestore-only save below...
-      
     }
     
-    // ===== FIRESTORE DIRECT SAVE (Original Path or Fallback) =====
     if (!savedDocId) {
       elements.submitBtn.innerHTML = '<div class="spinner"></div><span>Menyimpan ke Firebase...</span>';
 
-      // Convert files to Base64 format for Firestore (legacy method)
       let uploadedFiles = [];
       
       if (state.selectedFiles.length > 0) {
@@ -988,30 +1296,31 @@ async function handleSubmit(e) {
           syncedAt: null
         }));
         
-        console.log('[Submit] Files converted to Base64:', uploadedFiles.length, 'files (legacy format)');
+        console.log('[Submit] Files converted to Base64:', uploadedFiles.length, 'files');
       }
 
-      // Build final data object
       const firebaseData = {
         ...data,
-        source: 'FinanceSync Pro v3.3 (Drive Edition)',
+        source: 'FinanceSync Pro v3.4 (Multi-Company)',
         files: uploadedFiles,
         synced_to_sheets: false,
         synced_at: null,
         sheets_error: null
       };
 
-      // Add signature defaults
-      Object.assign(firebaseData, DEFAULT_SIGNATORIES);
+      // ★★★ UPDATE (v3.4): Pakai signatures dari company config ★★★
+      var signaturesToUse = DEFAULT_SIGNATORIES;
+      if (typeof ConfigHelper !== 'undefined' && typeof ConfigHelper.getSignaturesForCompany === 'function') {
+        var companySignatures = ConfigHelper.getSignaturesForCompany(getActiveCompanyId());
+        if (companySignatures) signaturesToUse = companySignatures;
+      }
+      Object.assign(firebaseData, signaturesToUse);
 
-      // Save to Firestore
       if (isEditMode) {
-        // Update existing document
         await updateSubmission(state.editingDocId, firebaseData);
         savedDocId = state.editingDocId;
         console.log('[Firebase] ✅ Updated! ID:', savedDocId);
       } else {
-        // Create new document
         const docRef = await withTimeout(
           createSubmission(firebaseData),
           15000,
@@ -1022,7 +1331,6 @@ async function handleSubmit(e) {
         console.log('[Firebase] ✅ Saved! ID:', savedDocId);
       }
       
-      // Show success toast
       showToast(
         (isEditMode ? 'Berhasil diupdate!' : '✅ Berhasil Disimpan!') + 
         (uploadedFiles.length > 0 ? ' Menunggu sync...' : ''),
@@ -1030,22 +1338,18 @@ async function handleSubmit(e) {
       );
     }
 
-    // ===== POST-SAVE ACTIONS =====
     state.lastSavedDocId = savedDocId;
     state.lastFormData = Object.assign({}, data, { id: savedDocId });
     saveSuccess = true;
 
-    // Update drive status banner
     updateDriveStatusBanner(
       'pending',
       '⏳ Menunggu sync ke Spreadsheet... (Klik "Sync ke Sheets" untuk langsung!)'
     );
 
-    // Populate and show document preview
     populateDocuments(data);
     if (elements.documentModal) elements.documentModal.classList.add('show');
 
-    // Auto-trigger sync after 2 seconds if Apps Script URL configured
     if (state.appsScriptUrl || (typeof getAppsScriptUrl === 'function' && getAppsScriptUrl())) {
       setTimeout(function() {
         console.log('[Auto-Trigger] Calling triggerManualSync in 2 seconds...');
@@ -1063,10 +1367,13 @@ async function handleSubmit(e) {
       errorMsg = 'Permission denied! Cek Firestore Rules.';
     }
     
+    if (errorMsg.includes('Tidak ada active company') || errorMsg.includes('belum login')) {
+      showLoginModal(); // ★★★ BARU (v3.4): Buka login modal ★★★
+    }
+    
     showToast('Gagal menyimpan: ' + errorMsg, 'error');
   }
 
-  // ===== RESET FORM IF SUCCESSFUL =====
   elements.submitBtn.disabled = false;
 
   if (saveSuccess) {
@@ -1074,36 +1381,32 @@ async function handleSubmit(e) {
     
     if (elements.form) elements.form.reset();
     
-    // Reset state
     state.items = [{ ket: '', qty: '', nominal: 0, keterangan: '' }];
     state.selectedFiles = [];
     
-    // Update UI
     updateFileDisplay();
     renderFormItems();
     
-    // Reset tanggal
     const t = document.getElementById('tanggal');
     if (t) t.valueAsDate = new Date();
     
-    // Reset payment date visibility
     if (elements.statusInput?.value !== 'Lunas' && elements.paymentDateContainer) {
       elements.paymentDateContainer.style.display = 'none';
     }
     
-    // Reset submit button
     resetSubmitButton();
     
-    // Hide progress
     if (typeof hideUploadProgress === 'function') {
       hideUploadProgress();
     }
     
-    // Auto-generate new invoice
-    autoGenerateInvoice().then(function(inv) {
-      const ni = document.getElementById('no_invoice');
-      if (inv && ni) ni.value = inv;
-    });
+    // ★★★ UPDATE (v3.4): Auto-generate dengan prefix company ★★★
+    if (isLoggedIn() && getActiveCompanyId()) {
+      autoGenerateInvoice().then(function(inv) {
+        const ni = document.getElementById('no_invoice');
+        if (inv) ni.value = inv;
+      });
+    }
     
   } else {
     resetSubmitButton(isEditMode);
@@ -1111,11 +1414,6 @@ async function handleSubmit(e) {
 }
 
 // ==================== RESET SUBMIT BUTTON ====================
-
-/**
- * Reset submit button ke state default atau edit mode
- * @param {boolean} isEdit - Jika true, tampilkan teks edit mode
- */
 function resetSubmitButton(isEdit) {
   if (!elements.submitBtn) return;
 
@@ -1130,33 +1428,32 @@ function resetSubmitButton(isEdit) {
       <span>Update Transaksi</span>
     `;
   } else {
+    // ★★★ UPDATE (v3.4): Tampilkan nama company di tombol ★★★
+    var companyInfo = '';
+    var company = getCurrentCompanyConfig();
+    if (company) {
+      companyInfo = ` (${company.displayName})`;
+    }
+    
     elements.submitBtn.innerHTML = `
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 3z"/>
       </svg>
-      <span>💾 Simpan ke Firebase</span>
+      <span>💾 Simpan${companyInfo}</span>
     `;
   }
 }
 
 // ==================== DOCUMENT PREVIEW FUNCTIONS ====================
-
-/**
- * Handle preview button click
- */
 function handlePreview() {
   const data = getFormData();
 
-  // Validasi minimal ada 1 item
   if (data.items.length === 0 || data.items.every(i => !i.ket)) {
     showToast('Lengkapi minimal 1 item', 'error');
     return;
   }
 
-  // Simpan data untuk preview
   state.lastFormData = data;
-
-  // Populate dokumen dan tampilkan modal
   populateDocuments(data);
   
   if (elements.documentModal) {
@@ -1165,28 +1462,43 @@ function handlePreview() {
 }
 
 /**
- * Populate data ke template dokumen (Page 1 & Page 2)
- * @param {Object} data - Data form
+ * Populate data ke template dokumen
+ * ★ UPDATE (v3.4): Pakai signatures dari company config
  */
 function populateDocuments(data) {
   const ft = 'Rp ' + formatNumber(data.total_nominal);
 
-  // Helper function untuk set value
   const setVal = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.textContent = val || '-';
   };
 
-  // === PAGE 1: Form Pengajuan HO ===
+  // === PAGE 1 ===
   setVal('p1_lokasi', data.lokasi);
   setVal('p1_tanggal', formatDate(data.tanggal));
   setVal('p1_kode', data.kode);
   setVal('p1_jenis', data.jenis_pengajuan);
   setVal('p1_total', ft);
-  setVal('p1_dibuat', data.dibuat_oleh || DEFAULT_SIGNATORIES.dibuat_oleh);
-  setVal('p1_disetujui', data.disetujui_oleh || DEFAULT_SIGNATORIES.disetujui_oleh);
+  
+  // ★★★ UPDATE (v3.4): Signatures dari company atau fallback ★★★
+  var sigDibuat = data.dibuat_oleh;
+  var sigDisetujui = data.disetujui_oleh;
+  var sigKeuangan = data.keuangan;
+  var sigDirKeuangan = data.dir_keuangan;
+  var sigDirektur = data.direktur_utama;
+  var sigAccounting = data.accounting;
+  
+  // Jika tidak ada di data, pakai default/global
+  if (!sigDibuat && typeof DEFAULT_SIGNATORIES !== 'undefined') sigDibuat = DEFAULT_SIGNATORIES.dibuat_oleh;
+  if (!sigDisetujui && typeof DEFAULT_SIGNATORIES !== 'undefined') sigDisetujui = DEFAULT_SIGNATORIES.disetujui_oleh;
+  if (!sigKeuangan && typeof DEFAULT_SIGNATORIES !== 'undefined') sigKeuangan = DEFAULT_SIGNATORIES.keuangan;
+  if (!sigDirKeuangan && typeof DEFAULT_SIGNATORIES !== 'undefined') sigDirKeuangan = DEFAULT_SIGNATORIES.dir_keuangan;
+  if (!sigDirektur && typeof DEFAULT_SIGNATORIES !== 'undefined') sigDirektur = DEFAULT_SIGNATORIES.direktur_utama;
+  if (!sigAccounting && typeof DEFAULT_SIGNATORIES !== 'undefined') sigAccounting = DEFAULT_SIGNATORIES.accounting;
+  
+  setVal('p1_dibuat', sigDibuat);
+  setVal('p1_disetujui', sigDisetujui);
 
-  // Table body page 1
   const p1Body = document.getElementById('p1_table_body');
   if (p1Body) {
     p1Body.innerHTML = data.items.map((item, idx) => `
@@ -1200,7 +1512,6 @@ function populateDocuments(data) {
     `).join('');
   }
 
-  // Notes page 1
   const hasNote = data.catatan_tambahan && data.catatan_tambahan.trim;
   ['p1_notes_manual_wrapper', 'p2_notes_manual_wrapper'].forEach(id => {
     const el = document.getElementById(id);
@@ -1214,18 +1525,17 @@ function populateDocuments(data) {
     if (p2n) p2n.textContent = data.catatan_tambahan.trim();
   }
 
-  // === PAGE 2: Bukti Pengeluaran Kas/Bank ===
+  // === PAGE 2 ===
   setVal('p2_tanggal', formatDate(data.tanggal));
   setVal('p2_kode', data.kode);
   setVal('p2_dibayarkan', data.dibayarkan_kepada);
   setVal('p2_jenis', data.jenis_pengajuan);
   setVal('p2_total', ft);
-  setVal('p2_name_keuangan', data.keuangan || DEFAULT_SIGNATORIES.keuangan);
-  setVal('p2_name_dirkeuangan', data.dir_keuangan || DEFAULT_SIGNATORIES.dir_keuangan);
-  setVal('p2_name_direktur', data.direktur_utama || DEFAULT_SIGNATORIES.direktur_utama);
-  setVal('p2_name_accounting', data.accounting || DEFAULT_SIGNATORIES.accounting);
+  setVal('p2_name_keuangan', sigKeuangan);
+  setVal('p2_name_dirkeuangan', sigDirKeuangan);
+  setVal('p2_name_direktur', sigDirektur);
+  setVal('p2_name_accounting', sigAccounting);
 
-  // Table body page 2
   const p2Body = document.getElementById('p2_table_body');
   if (p2Body) {
     p2Body.innerHTML = data.items.map((item, idx) => `
@@ -1239,9 +1549,6 @@ function populateDocuments(data) {
   }
 }
 
-/**
- * Download dokumen sebagai PDF
- */
 async function downloadAsPDF() {
   const element = document.getElementById('pdf-wrapper');
   if (!element) return;
@@ -1268,10 +1575,6 @@ async function downloadAsPDF() {
 window.downloadAsPDF = downloadAsPDF;
 
 // ==================== MODAL MANAGEMENT ====================
-
-/**
- * Buka modal setup Firebase
- */
 window.openSetupModal = function() {
   console.log('[Setup] Opening modal...');
   const modal = document.getElementById('setupModal');
@@ -1279,13 +1582,11 @@ window.openSetupModal = function() {
   if (modal) {
     modal.classList.add('show');
     
-    // Load config tersimpan ke textarea
     const savedConfig = localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG);
     if (savedConfig && elements.firebaseConfigInput) {
       elements.firebaseConfigInput.value = savedConfig;
     }
     
-    // Load Apps Script URL
     const savedUrl = localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL);
     const urlInput = document.getElementById('appsScriptUrlInput');
     if (savedUrl && urlInput) {
@@ -1294,58 +1595,40 @@ window.openSetupModal = function() {
   }
 };
 
-/**
- * Tutup modal setup Firebase
- */
 window.closeSetupModal = function() {
   const modal = document.getElementById('setupModal');
   if (modal) modal.classList.remove('show');
 };
 
-/**
- * Buka modal Google Apps Script code
- */
 window.openGasModal = function() {
   const modal = document.getElementById('gasModal');
   if (modal) {
     modal.classList.add('show');
-    loadAppsScriptCode(); // Load kode backend
+    loadAppsScriptCode();
   }
 };
 
-/**
- * Tutup modal Google Apps Script
- */
 window.closeGasModal = function() {
   const modal = document.getElementById('gasModal');
   if (modal) modal.classList.remove('show');
 };
 
-/**
- * Buka modal preview dokumen
- */
 function openDocumentModal() {
   if (elements.documentModal) {
     elements.documentModal.classList.add('show');
   }
 }
 
-/**
- * Tutup modal preview dokumen
- */
 window.closeDocumentModal = function() {
   if (elements.documentModal) {
     elements.documentModal.classList.remove('show');
   }
 };
 
-/**
- * Buka modal konfirmasi hapus
- * @param {string} docId - ID dokumen
- * @param {string} kode - Kode transaksi
- * @param {number} nominal - Nominal transaksi
- */
 window.openDeleteModal = function(docId, kode, nominal) {
+  // ★★★ BARU (v3.4): Cek login sebelum hapus ★★★
+  if (!canPerformOperation()) return;
+  
   state.pendingDeleteId = docId;
   state.pendingDeleteKode = kode;
 
@@ -1358,9 +1641,6 @@ window.openDeleteModal = function(docId, kode, nominal) {
   if (modal) modal.classList.add('show');
 };
 
-/**
- * Tutup modal konfirmasi hapus
- */
 window.closeDeleteModal = function() {
   const modal = document.getElementById('deleteConfirmModal');
   if (modal) modal.classList.remove('show');
@@ -1369,9 +1649,6 @@ window.closeDeleteModal = function() {
   state.pendingDeleteKode = null;
 };
 
-/**
- * Konfirmasi hapus data
- */
 window.confirmDelete = async function() {
   if (!state.pendingDeleteId || !state.db) return;
 
@@ -1385,45 +1662,17 @@ window.confirmDelete = async function() {
 };
 
 // ==================== APPS SCRIPT CODE DISPLAY ====================
-
-/**
- * Load dan tampilkan kode Google Apps Script di modal
- */
 function loadAppsScriptCode() {
   const codeContainer = document.getElementById('gasCodeContent');
   if (!codeContainer) return;
 
-  // Kode Apps Script (disederhanakan - user should copy from the full version we provided earlier)
   const appsScriptCode = `/**
  * FinanceSync Pro v3.4 - Google Apps Script Backend
- * Copy kode lengkap dari output yang diberikan sebelumnya
- * 
- * ATAU gunakan fungsi copyGasCode() untuk menyalin kode lengkap
- */
-
-// Untuk kode lengkap, lihat response dari server atau documentation
-const CONFIG = {
-  FIREBASE_PROJECT_ID: 'ai-devender-7b55c'
-};
-
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: 'ok',
-    version: 'FinanceSync Pro v3.4'
-  })).setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  // Parse request dan route ke handler
-  // ...
-}`;
+ */`;
 
   codeContainer.textContent = appsScriptCode;
 }
 
-/**
- * Salin kode Apps Script ke clipboard
- */
 window.copyGasCode = function() {
   const codeContainer = document.getElementById('gasCodeContent');
   if (!codeContainer) return;
@@ -1439,25 +1688,25 @@ window.copyGasCode = function() {
 };
 
 // ==================== EDIT TRANSACTION ====================
-
 /**
  * Edit transaksi dari riwayat
- * @param {string} docId - ID dokumen yang akan diedit
+ * ★ UPDATE (v3.4): Cek ownership/login
  */
 window.editTransaction = async function(docId) {
+  // ★★★ BARU (v3.4): Cek login ★★★
+  if (!canPerformOperation()) return;
+  
   if (!state.db || !docId) {
     showToast('Tidak dapat mengedit: Firebase tidak terhubung', 'error');
     return;
   }
 
   try {
-    // Scroll ke form
     document.querySelector('.lg\\:col-span-3')?.scrollIntoView({ 
       behavior: 'smooth', 
       block: 'start' 
     });
 
-    // Tampilkan loading state
     if (elements.editModeContainer) {
       elements.editModeContainer.innerHTML = `
         <div class="edit-banner">
@@ -1472,7 +1721,6 @@ window.editTransaction = async function(docId) {
       `;
     }
 
-    // Ambil data dari Firestore
     const docData = await getSubmissionById(docId);
     
     if (!docData) {
@@ -1481,17 +1729,14 @@ window.editTransaction = async function(docId) {
       return;
     }
 
-    // Set state editing
     state.editingDocId = docId;
     state.lastSavedDocId = docId;
 
-    // Helper untuk set value
     const setVal = (id, val) => {
       const el = document.getElementById(id);
       if (el) el.value = val || '';
     };
 
-    // Populate form fields
     setVal('tanggal', docData.tanggal);
     setVal('lokasi', docData.lokasi);
     setVal('jenis_pengajuan', docData.jenis_pengajuan);
@@ -1502,7 +1747,6 @@ window.editTransaction = async function(docId) {
     setVal('dibayarkan_kepada', docData.dibayarkan_kepada);
     setVal('catatan_tambahan', docData.catatan_tambahan);
 
-    // Populate items
     if (docData.items && docData.items.length > 0) {
       state.items = docData.items.map(i => ({
         ket: i.ket || '',
@@ -1514,7 +1758,6 @@ window.editTransaction = async function(docId) {
       state.items = [{ ket: '', qty: '', nominal: 0, keterangan: '' }];
     }
 
-    // Handle files (convert back from stored format)
     state.selectedFiles = [];
     if (docData.files && docData.files.length > 0) {
       state.selectedFiles = docData.files
@@ -1527,36 +1770,30 @@ window.editTransaction = async function(docId) {
             base64: fData.base64Data?.stringValue || fData.base64Data || ''
           };
         })
-        .filter(f => f.base64); // Hanya yang punya base64
+        .filter(f => f.base64);
     }
     
-    // ★ NEW: Also check for google_drive_link field (new format)
     if (docData.google_drive_link && !state.selectedFiles.length) {
-      // If there's a drive link but no legacy files, show it as a "virtual" file
       state.selectedFiles = [{
         name: docData.nama_file || 'Google Drive File',
         type: 'application/vnd.google-apps.file',
         size: docData.file_size || 0,
-        base64: '', // No base64 for already-uploaded files
+        base64: '',
         driveUrl: docData.google_drive_link
       }];
     }
 
-    // Update UI
     renderFormItems();
     updateFileDisplay();
 
-    // Show/hide payment date field
     if (docData.status === 'Lunas' && elements.paymentDateContainer) {
       elements.paymentDateContainer.style.display = 'block';
     } else if (elements.paymentDateContainer) {
       elements.paymentDateContainer.style.display = 'none';
     }
 
-    // Update submit button untuk edit mode
     resetSubmitButton(true);
 
-    // Show edit mode banner
     if (elements.editModeContainer) {
       elements.editModeContainer.innerHTML = `
         <div class="edit-banner">
@@ -1586,40 +1823,29 @@ window.editTransaction = async function(docId) {
   }
 };
 
-/**
- * Batalkan mode edit
- */
 window.cancelEdit = function() {
   clearEditMode();
 
   if (elements.form) elements.form.reset();
   
-  // Reset state
   state.items = [{ ket: '', qty: '', nominal: 0, keterangan: '' }];
   state.selectedFiles = [];
 
-  // Update UI
   updateFileDisplay();
   renderFormItems();
 
-  // Reset tanggal
   const t = document.getElementById('tanggal');
   if (t) t.valueAsDate = new Date();
 
-  // Reset payment date visibility
   if (elements.statusInput?.value !== 'Lunas' && elements.paymentDateContainer) {
     elements.paymentDateContainer.style.display = 'none';
   }
 
-  // Reset submit button
   resetSubmitButton();
 
   showToast('Mode edit dibatalkan', 'info');
 };
 
-/**
- * Clear edit mode state
- */
 function clearEditMode() {
   state.editingDocId = null;
   
@@ -1629,11 +1855,6 @@ function clearEditMode() {
 }
 
 // ==================== PREVIEW FROM HISTORY ====================
-
-/**
- * Preview dokumen dari riwayat
- * @param {string} docId - ID dokumen
- */
 window.previewFromHistory = async function(docId) {
   if (!docId) {
     showToast('ID dokumen tidak valid', 'error');
@@ -1644,11 +1865,9 @@ window.previewFromHistory = async function(docId) {
     let docSnap;
 
     if (state.db) {
-      // Ambil dari Firestore
       const docData = await getSubmissionById(docId);
       docSnap = docData ? { exists: true, data: () => docData } : null;
     } else {
-      // Cari di local history state
       const found = state.history.find(h => h.id === docId);
       docSnap = found ? { exists: true, data: () => found } : null;
     }
@@ -1660,7 +1879,6 @@ window.previewFromHistory = async function(docId) {
 
     const data = docSnap.data();
 
-    // Build preview data object
     const previewData = {
       tanggal: data.tanggal,
       lokasi: data.lokasi,
@@ -1681,11 +1899,9 @@ window.previewFromHistory = async function(docId) {
       accounting: data.accounting || DEFAULT_SIGNATORIES.accounting
     };
 
-    // Set state dan populate dokumen
     state.lastFormData = previewData;
     populateDocuments(previewData);
 
-    // Tampilkan modal
     if (elements.documentModal) {
       elements.documentModal.classList.add('show');
     }
@@ -1697,23 +1913,19 @@ window.previewFromHistory = async function(docId) {
 };
 
 // ==================== RENDER HISTORY LIST ====================
-
 /**
  * Render daftar riwayat transaksi
- * Fungsi ini dipanggil setiap kali data berubah (via realtime listener)
- * ★ UPDATED: Support new google_drive_link field display
+ * ★ UPDATE (v3.4): Tampilkan company info jika ada
  */
 function renderHistory() {
   if (!elements.historyList) return;
 
-  // Filter berdasarkan tab aktif
   const filtered = state.currentTab === 'Lunas'
     ? state.history.filter(h => h.status === 'Lunas')
     : state.currentTab === 'Belum Lunas'
       ? state.history.filter(h => h.status !== 'Lunas')
       : state.history;
 
-  // Jika tidak ada data
   if (filtered.length === 0) {
     elements.historyList.innerHTML = `
       <div class="text-center py-10 text-[--muted]">
@@ -1728,7 +1940,6 @@ function renderHistory() {
     return;
   }
 
-  // Render list items (maksimal 30)
   elements.historyList.innerHTML = filtered.slice(0, 30).map(function(item) {
     const dateStr = formatDate(item.tanggal);
     const itemsSummary = (item.items || []).map(i => i.ket).filter(k => k).join(', ');
@@ -1742,25 +1953,20 @@ function renderHistory() {
     const safeNominal = item.total_nominal || 0;
     const isLunas = item.status === 'Lunas';
 
-    // Status badge
     const statusBadge = isLunas
       ? '<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded text-xs font-semibold shadow-sm">Lunas</span>'
       : '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-xs font-semibold shadow-sm">Belum Lunas</span>';
 
-    // Sync indicator - ★ UPDATED: Support both old and new format
     let syncIndicator = '';
     let historyItemClass = 'history-item';
     
-    // Check new format first (google_drive_link)
     const hasGoogleDriveLink = item.google_drive_link && item.google_drive_link.trim() !== '';
     const hasLegacyFiles = item.files && item.files.length > 0;
     
     if (hasGoogleDriveLink) {
-      // New format: has direct Google Drive link
       syncIndicator = '<span class="sync-indicator synced" title="File tersimpan di Google Drive">☁️ Drive</span>';
       historyItemClass += ' synced';
     } else if (hasLegacyFiles) {
-      // Legacy format: check files array
       const syncedCount = item.files.filter(f => {
         const fData = f.mapValue?.fields || f;
         return fData.driveUrl?.stringValue || fData.driveUrl;
@@ -1788,14 +1994,12 @@ function renderHistory() {
       }
     }
 
-    // File list mini display - ★ UPDATED: Show Google Drive link if available
     let fileListHtml = '';
     
     if (hasGoogleDriveLink) {
-      // New format: show Google Drive link
       const fileName = item.nama_file || 'File';
       const driveIcon = fileName.toLowerCase().includes('.pdf') ? '📕' : 
-                       fileName.toLowerCase().includes('.jpg') || fileName.toLowerCase().includes('.png') ? '🖼️' : '📄';
+                           fileName.toLowerCase().includes('.jpg') || fileName.toLowerCase().includes('.png') ? '🖼️' : '📄';
       
       fileListHtml = `
         <div class="mt-2 p-2 bg-blue-900/20 rounded-lg border border-blue-700/30">
@@ -1807,7 +2011,6 @@ function renderHistory() {
         </div>
       `;
     } else if (hasLegacyFiles) {
-      // Legacy format: show files array
       fileListHtml = '<div class="mt-2 space-y-1">';
       
       item.files.forEach(f => {
@@ -1847,7 +2050,13 @@ function renderHistory() {
       fileListHtml += '</div>';
     }
 
-    // Return complete HTML for this item
+    // ★★★ BARU (v3.4): Tampilkan company badge jika ada ★★★
+    var companyTag = '';
+    if (item.company_id || item.companyName) {
+      var companyName = item.companyName || item.company_id;
+      companyTag = `<span class="text-xs bg-gray-700/50 text-gray-300 px-2 py-0.5 rounded ml-1">${escapeHtml(companyName)}</span>`;
+    }
+
     return `
       <div class="${historyItemClass}" data-id="${safeId}">
         <div class="flex justify-between items-start mb-2">
@@ -1856,6 +2065,7 @@ function renderHistory() {
               <span class="font-semibold text-sm text-[--fg]">${safeKode}</span>
               ${statusBadge}
               ${syncIndicator}
+              ${companyTag}
             </div>
             <div class="text-xs text-[--muted] mt-1">${dateStr} • ${safeLabel}</div>
           </div>
@@ -1894,14 +2104,11 @@ function renderHistory() {
 }
 
 // ==================== START APPLICATION ====================
-
-// Jalankan inisialisasi saat DOM ready
 document.addEventListener('DOMContentLoaded', init);
 
-// Log ke console
-console.log('%c🚀 FinanceSync Pro v3.3 - Google Drive Edition', 
+console.log('%c🚀 FinanceSync Pro v3.4 - Multi-Company Edition', 
   'font-size: 18px; font-weight: bold; color: #ffca28; background: #0c1222; padding: 10px 20px; border-radius: 8px;');
-console.log('%c⚙️ Powered by Firebase Firestore + Google Apps Script', 
+console.log('%c⚙️ Powered by Firebase Firestore + Multi-Company Auth', 
   'font-size: 11px; color: #64748b;');
-console.log('%c📁 Google Drive Integration: ENABLED (Up to 30MB per file)', 
+console.log('%c🏢 Companies: NMSA & IPN Ready!', 
   'font-size: 11px; color: #34a85c;');
