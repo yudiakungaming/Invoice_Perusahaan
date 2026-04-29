@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinanceSync Pro v3.3 - Google Drive Edition</title>
+  <title>FinanceSync Pro v3.4 - Multi-Company Edition</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,6 +11,9 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- ★★★ BARU (v3.4): Firebase Auth SDK (Diperlukan untuk login!) ★★★ -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   
   <!-- html2pdf.js untuk export PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -24,7 +27,7 @@
   <link rel="stylesheet" href="css/styles.css">
 
   <!-- ═══════════════════════════════════════════════════════════════════════════
-       ★ TAMBAHAN BARU: Custom Styles untuk Upload Progress & Drive Integration
+       ★ UPDATE v3.4: Custom Styles + Login UI Styles
        ═══════════════════════════════════════════════════════════════════════════ -->
   <style>
     /* ===== UPLOAD PROGRESS BAR ===== */
@@ -119,7 +122,7 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      justify-center;
+      justify-content: center;
       transition: all 0.2s ease;
       flex-shrink: 0;
     }
@@ -221,6 +224,373 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+     ★★★ TAMBAHAN BARU (v3.4): AUTH & LOGIN UI STYLES ★★★
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+    /* Auth Container - Tempat tombol login & company badge */
+    .auth-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    /* Company Badge - Menampilkan nama company yang aktif */
+    .company-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .company-badge.nmsa {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.25), rgba(30, 64, 175, 0.25));
+      color: #93c5fd;
+      border: 1px solid rgba(37, 99, 235, 0.4);
+    }
+
+    .company-badge.ipn {
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.25), rgba(153, 27, 27, 0.25));
+      color: #fca5a5;
+      border: 1px solid rgba(220, 38, 38, 0.4);
+    }
+
+    .company-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .company-name {
+      font-weight: 700;
+    }
+
+    /* User Info - Menampilkan info user yang login */
+    .user-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #e2e8f0;
+    }
+
+    .user-name {
+      font-weight: 500;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Login Button */
+    .btn-login {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: white;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    /* Logout Button */
+    .btn-logout {
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: transparent;
+      color: #f87171;
+      border: 1px solid rgba(239, 113, 113, 0.3);
+    }
+
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    /* Login Modal Overlay */
+    .login-modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    }
+
+    .login-modal-overlay.hidden {
+      display: none !important;
+    }
+
+    /* Login Modal Box */
+    .login-modal {
+      background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 20px;
+      padding: 36px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .login-modal h2 {
+      color: white;
+      margin-bottom: 28px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .login-form-group {
+      margin-bottom: 18px;
+    }
+
+    .login-form-label {
+      display: block;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 14px 18px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      color: white;
+      font-size: 15px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+
+    .login-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2), 0 0 20px rgba(37, 99, 235, 0.1);
+    }
+
+    .login-input::placeholder {
+      color: #475569;
+    }
+
+    .login-btn-submit {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-btn-submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
+    }
+
+    .login-btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .login-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      display: none;
+      animation: shakeX 0.4s ease;
+    }
+
+    .login-error.show {
+      display: block;
+    }
+
+    @keyframes shakeX {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+
+    .login-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 26px;
+      cursor: pointer;
+      line-height: 1;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .login-close:hover {
+      color: white;
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .login-hint {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .login-hint strong {
+      color: #60a5fa;
+    }
+
+    /* Company selector hint inside login modal */
+    .login-companies-hint {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .login-company-option {
+      padding: 14px;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .login-company-option:hover {
+      border-color: #475569;
+      transform: translateY(-2px);
+    }
+
+    .login-company-option.selected {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
+    }
+
+    .login-company-icon {
+      font-size: 32px;
+      margin-bottom: 6px;
+    }
+
+    .login-company-name {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    /* Loading spinner overlay untuk halaman saat belum login */
+    .auth-required-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 99998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-required-content {
+      background: #1e293b;
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      max-width: 400px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .auth-required-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .auth-required-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 8px;
+    }
+
+    .auth-required-text {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
@@ -233,20 +603,45 @@
 
     <!-- ==================== HEADER ==================== -->
     <header class="border-b border-[--border] bg-[--bg]/90 backdrop-blur-lg sticky top-0 z-50 no-print">
-      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3 animate-in">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive] to-[--sheets] flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-lg font-semibold">FinanceSync Pro v3.3</h1>
-            <p class="text-xs text-[--muted]">Google Drive Edition</p>
-          </div>
-        </div>
+      <div class="max-w-6xl mx-auto px-6 py-4">
         
-        <div class="flex items-center gap-3 animate-in delay-1">
+        <!-- Top Row: Logo + Auth Container -->
+        <div class="flex items-center justify-between mb-3">
+          
+          <!-- Logo & Title -->
+          <div class="flex items-center gap-3 animate-in">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[--drive] to-[--sheets] flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.06 5.61 4.09 8.44C3.39 9.93 3 11.58 3 13.32c0 4.03 2.87 7.43 6.67 8.21l-.02.22c-.07.42-.07.85-.07 1.25 0 3.31 2.69 6 6 6h.02c.01 0 .02 0 .03-.01 3.59-.17 6.47-6.76 0-3.86-3.13-7-7-7z"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-lg font-semibold">FinanceSync Pro <span class="text-xs text-[--muted] font-normal ml-1">v3.4</span></h1>
+              <p class="text-xs text-[--muted]">Multi-Company Edition</p>
+            </div>
+          </div>
+          
+          <!-- ★★★ BARU (v3.4): Auth Container - Tempat Login Button & Company Badge ★★★ -->
+          <div id="authContainer" class="auth-container animate-in delay-1">
+            <!-- Ini akan diisi otomatis oleh app.js jika belum login, atau menampilkan badge jika sudah login -->
+            <button id="loginBtn" class="btn-login" onclick="showLoginModal()" style="display:none;">
+              🔐 Login
+            </button>
+            
+            <div id="companyBadge" class="company-badge" style="display:none;">
+              <span class="company-icon">🏢</span>
+              <span class="company-name"></span>
+            </div>
+            
+            <div id="userInfo" class="user-info" style="display:none;">
+              <span class="user-name"></span>
+            </div>
+            
+            <button id="logoutBtn" class="btn-logout" onclick="handleLogout()" style="display:none;">
+              🚪 Logout
+            </button>
+          </div>
+          
           <!-- Connection Status Indicator -->
           <div id="connectionStatus" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[--bg-secondary]">
             <div class="status-dot connecting" id="statusDot"></div>
@@ -256,10 +651,10 @@
           <!-- Setup Button -->
           <button id="setupBtn" class="btn-setup" onclick="openSetupModal()" aria-label="Pengaturan Firebase">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-1.065-2.573c-.94-1.543.826-3.31-2.573c-.94-1.543.826-3.31-2.37a1.724 1.724 0 00-1.066-2.573c-.94-1.543.826-3.31-2.37.996.608.608.608.608Z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-1.065-2.573c-.94-1.543.826-3.31-2.573c-.94-1.543.826-3.31-2.37.996.608.608.608.608.608Z"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-            <span>Setup Firebase</span>
+            <span>Setup</span>
           </button>
           
           <!-- Apps Script Code Button -->
@@ -268,6 +663,11 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
             </svg>
           </button>
+        </div>
+        
+        <!-- Bottom Row: Action buttons (optional, bisa dihapus jika terlalu padat) -->
+        <div class="flex items-center justify-end gap-3 animate-in delay-2">
+          <!-- Bisa ditambah tombol lain di sini jika perlu -->
         </div>
       </div>
     </header>
@@ -305,16 +705,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <div>
-            <h3 class="font-semibold text-sm text-blue-300 mb-1">🏗️ Arsitektur Firebase → Google Drive</h3>
+            <h3 class="font-semibold text-sm text-blue-300 mb-1">🏗️ Arsitektur Firebase → Google Drive (Multi-Company)</h3>
             
-            <!-- ★ UPDATE: Info arsitektur yang lebih detail -->
             <p class="text-xs text-gray-400 mb-2">
-              Data disimpan ke <strong class="text-yellow-300">Firebase Firestore</strong>, 
+              Data disimpan ke <strong class="text-yellow-300">Firebase Firestore</strong> (terpisih per Company), 
               File dikonversi ke Base64, kemudian <strong class="text-green-300">Apps Script</strong> 
               membuat file di <strong class="text-blue-300">Google Drive</strong>.
             </p>
             
-            <!-- ★ TAMBAHAN: Status koneksi Apps Script -->
+            <!-- Status koneksi Apps Script -->
             <div id="archAppsScriptStatus" class="mt-2 p-2 bg-black/20 rounded-lg text-xs" style="display:none;">
               <div class="flex items-center justify-between">
                 <span class="text-gray-400">Apps Script URL:</span>
@@ -344,7 +743,7 @@
           <div class="text-2xl font-bold text-[--warning]" id="pendingData">0</div>
         </div>
         
-        <!-- ★ TAMBAHAN BARU: Card untuk Upload Status -->
+        <!-- Upload Stats Card -->
         <div class="card animate-in delay-5 col-span-2 md:col-span-4" id="uploadStatsCard" style="display:none;">
           <div class="flex items-center justify-between">
             <div>
@@ -457,15 +856,11 @@
                 <input type="text" id="dibayarkan_kepada" name="dibayarkan_kepada" class="input-field" placeholder="Nama penerima pembayaran" required>
               </div>
 
-              <!-- ═══════════════════════════════════════════════════════════════
-                   ★ UPDATE: File Upload Section - Enhanced Version
-                   Support: Multiple files, larger size, drag & drop, progress
-                   ═══════════════════════════════════════════════════════════════ -->
+              <!-- Upload Section -->
               <div>
                 <div class="flex items-center justify-between mb-2">
                   <label class="field-label">Upload Bukti Dokumen</label>
                   
-                  <!-- ★ UPDATE: Badge dengan info lebih lengkap -->
                   <div class="flex items-center gap-2">
                     <span class="drive-badge">📁 Google Drive</span>
                     <span class="text-xs text-[--muted]" id="uploadLimitInfo">(Max 30MB)</span>
@@ -479,7 +874,6 @@
                      ondragleave="handleDragLeave(event)"
                      ondrop="handleDrop(event)">
                   
-                  <!-- Hidden File Input - ★ UPDATED accept attributes -->
                   <input type="file" 
                          id="fileInput" 
                          accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
@@ -487,7 +881,6 @@
                          hidden 
                          onchange="handleFileSelect(this)">
                   
-                  <!-- Drag & Drop Highlight Overlay -->
                   <div class="upload-drag-highlight rounded-xl">
                     <div class="text-center p-4">
                       <svg class="w-12 h-12 mx-auto text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -497,33 +890,27 @@
                     </div>
                   </div>
                   
-                  <!-- Default Placeholder (shown when no files selected) -->
                   <div id="uploadPlaceholder">
                     <svg class="w-8 h-8 mx-auto mb-2 text-[--muted]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                     </svg>
                     <p class="text-sm text-[--muted]">Klik untuk upload bukti invoice/foto</p>
                     
-                    <!-- ★ UPDATE: Info format yang didukung -->
                     <p class="text-xs text-gray-500 mt-2">
                       Format: PDF, JPG, PNG, DOC, XLS, PPT (Maks <strong class="text-green-400" id="maxSizeDisplay">30MB</strong>)
                     </p>
                     
-                    <!-- ★ UPDATE: Info proses yang lebih akurat -->
                     <p class="text-xs text-blue-400 mt-1">
                       🚀 File langsung tersimpan ke <strong>Google Drive</strong> via Apps Script
                     </p>
                   </div>
                   
-                  <!-- ★ TAMBAHAN: File List Display Container -->
                   <div id="fileListDisplay" class="mt-3 space-y-2"></div>
                   
-                  <!-- ★ TAMBAHAN: Upload Progress Container -->
                   <div class="upload-progress-container" id="uploadProgressContainer">
                     <div class="upload-progress-bar" id="uploadProgressBar"></div>
                   </div>
                   
-                  <!-- ★ TAMBAHAN: Drive Link Result Display -->
                   <div class="drive-link-display" id="driveLinkResult">
                     <div class="flex items-start gap-2">
                       <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
@@ -537,7 +924,6 @@
                   </div>
                 </div>
                 
-                <!-- ★ TAMBAHAN: Quick Actions for Selected Files -->
                 <div id="selectedFilesActions" class="flex items-center justify-between mt-2" style="display:none;">
                   <span class="text-xs text-[--muted]" id="selectedFilesCount">0 file dipilih</span>
                   <button type="button" onclick="clearSelectedFiles()" class="text-xs text-red-400 hover:text-red-300 transition-colors">
@@ -561,7 +947,6 @@
               <!-- Action Buttons -->
               <div class="flex flex-wrap items-center gap-3 pt-4">
                 
-                <!-- Submit Button - ★ Updated dengan indikator loading -->
                 <button type="submit" id="submitBtn" class="btn-submit">
                   <svg id="submitBtnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 3z"/>
@@ -577,7 +962,7 @@
                   <span>Preview & PDF</span>
                 </button>
                 
-                <!-- Force Sync Button - UPDATED with Status Container -->
+                <!-- Force Sync Button -->
                 <div class="sync-button-wrapper">
                   <button type="button" id="forceSyncBtn" class="btn-drive-sync" onclick="triggerManualSync()" title="Sinkronisasi data ke Google Sheets">
                     <svg id="syncIcon" class="drive-sync-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -586,10 +971,8 @@
                     <span id="syncBtnText">Sync ke Sheets</span>
                   </button>
                   
-                  <!-- Status Message Container -->
                   <div id="manualSyncStatus" class="manual-sync-status" style="display: none;"></div>
                   
-                  <!-- Last Sync Time Info -->
                   <div id="lastSyncInfoContainer" class="last-sync-info-text" style="display: none;">
                     <small>🕐 Terakhir: <span id="lastSyncTimeDisplay">-</span></small>
                   </div>
@@ -606,7 +989,7 @@
           <div class="card animate-in delay-4">
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-lg font-semibold">Riwayat Transaksi</h2>
-              <button id="clearHistory" class="text-xs text-[--muted] hover:text-[--error] transition-colors">Hapus Semua</button>
+              <button id="clearHistory" class="text-xs text-[--muted] hover:text-[--error] transition-colores">Hapus Semua</button>
             </div>
 
             <!-- Tab Buttons -->
@@ -655,7 +1038,7 @@
 
   <!-- ==================== MODALS ==================== -->
 
-  <!-- Setup Modal (Firebase Configuration) -->
+  <!-- Setup Modal -->
   <div id="setupModal" class="modal-overlay" role="dialog" aria-modal="true">
     <div class="modal-content">
       <div class="flex items-center justify-between mb-5">
@@ -663,7 +1046,7 @@
           <span class="text-2xl">⚙️</span> Konfigurasi Firebase
         </h2>
         <button onclick="closeSetupModal()" class="w-8 h-8 rounded-lg hover:bg-[--bg-secondary] flex items-center justify-center transition-colors" aria-label="Tutup">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
@@ -679,7 +1062,6 @@
               <h3 class="font-semibold text-base mb-2">🔥 Firebase Configuration</h3>
               <p class="text-sm text-[--muted] mb-3">Hanya butuh Firestore (Gratis, tanpa kartu kredit).</p>
               
-              <!-- Wrong Example -->
               <div class="example-config-box wrong-example">
                 <div class="flex items-center gap-2 mb-2">
                   <span class="text-lg">❌</span>
@@ -695,7 +1077,6 @@ const app = initializeApp(...);
                 </div>
               </div>
 
-              <!-- Correct Example -->
               <div class="example-config-box">
                 <div class="flex items-center gap-2 mb-2">
                   <span class="text-lg">✅</span>
@@ -711,7 +1092,6 @@ const app = initializeApp(...);
                 </div>
               </div>
 
-              <!-- Input Field -->
               <div class="mt-3">
                 <label class="field-label">Paste Firebase Config:</label>
                 <textarea id="firebaseConfigInput" class="input-field resize-none" rows="4" placeholder='{"apiKey": "...", ...}' style="font-family:'JetBrains Mono',monospace;font-size:11px;"></textarea>
@@ -723,7 +1103,7 @@ const app = initializeApp(...);
           </div>
         </div>
 
-        <!-- Step 2: How It Works - ★ UPDATED Info -->
+        <!-- Step 2: How It Works -->
         <div class="setup-step">
           <div class="flex items-start gap-3">
             <div class="step-number">2</div>
@@ -750,7 +1130,6 @@ const app = initializeApp(...);
                   </div>
                 </div>
 
-                <!-- ★ UPDATE: Batasan yang lebih realistis -->
                 <div class="mt-3 p-3 bg-[--bg] rounded-lg border border-[--border]">
                   <p class="text-xs text-[--muted] mb-2 font-semibold">⚠️ INFORMASI:</p>
                   <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside ml-4">
@@ -766,7 +1145,7 @@ const app = initializeApp(...);
           </div>
         </div>
         
-        <!-- ★ TAMBAHAN BARU: Step 3 - Apps Script URL Configuration -->
+        <!-- Step 3: Apps Script URL -->
         <div class="setup-step">
           <div class="flex items-start gap-3">
             <div class="step-number">3</div>
@@ -809,7 +1188,7 @@ const app = initializeApp(...);
           <span class="text-2xl">📜</span> Kode Google Apps Script (Backend)
         </h2>
         <button onclick="closeGasModal()" class="w-8 h-8 rounded-lg hover:bg-[--bg-secondary] flex items-center justify-center transition-colors" aria-label="Tutup">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
@@ -844,7 +1223,7 @@ const app = initializeApp(...);
             Print
           </button>
           <button onclick="closeDocumentModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors text-slate-600" aria-label="Tutup">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
@@ -919,7 +1298,7 @@ const app = initializeApp(...);
           <div class="document-page" id="documentPage2">
             <div class="doc-header-flex">
               <div class="doc-header-left">
-                <img src="https://i.ibb.co.com/jN7Khby/Logo-Nusantara-Mineral-Abadi.webp" alt="Logo Nusantara Mineral Sukses Abadi" class="doc-company-logo" onerror="this.style.display='none'">
+                <img src="https://i.ibb.co.com/jN7Khby/logo-nmsa.png" alt="Logo PT NMSA" class="doc-company-logo" onerror="this.src='https://via.placeholder.com/150x150?text=Logo+NMSA'">
               </div>
               <div class="doc-header-right">
                 <div class="doc-form-title-right">BUKTI PENGELUARAN KAS / BANK</div>
@@ -964,7 +1343,7 @@ const app = initializeApp(...);
                   <td colspan="3" style="text-align:right">TOTAL</td>
                   <td style="text-align:right" id="p2_total"></td>
                 </td>
-              </tr>
+              </tfoot>
             </table>
             
             <div id="p2_notes_manual_wrapper" style="display:none;">
@@ -1013,7 +1392,7 @@ const app = initializeApp(...);
 
   <!-- Delete Confirmation Modal -->
   <div id="deleteConfirmModal" class="modal-overlay" role="dialog" aria-modal="true">
-    <div class="modal-content" style="max-width:420px">
+    <div class="modal-content" style="max-width:420px;">
       <div class="text-center">
         <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-900/30 flex items-center justify-center">
           <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1032,6 +1411,49 @@ const app = initializeApp(...);
 
   <!-- Toast Notification -->
   <div id="toast" class="toast" role="alert"></div>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════
+       ★★★★ LOGIN MODAL (akan dibuat dinamis oleh app.js jika belum ada) ★★★★
+       ═════════════════════════════════════════════════════════════════════════ -->
+  <div id="loginModal" class="login-modal-overlay hidden">
+    <div class="login-modal">
+      <button class="login-close" onclick="hideLoginModal()">&times;</button>
+      
+      <h2>🔐 Login - FinanceSync Pro</h2>
+      
+      <div id="loginError" class="login-error"></div>
+      
+      <div class="login-companies-hint">
+        <div class="login-company-option" onclick="selectCompany('nmsa')">
+          <div class="login-company-icon">🏢</div>
+          <div class="login-company-name">NMSA<br><small style="opacity:0.6;font-size:10px;">Invoice-NMSA</small></div>
+        </div>
+        <div class="login-company-option" onclick="selectCompany('ipn')">
+          <div class="login-company-icon">🏭</div>
+          <div class="login-company-name">IPN<br><small style="opacity:0.6;font-size:10px;">Invoice-IPN</small></div>
+        </div>
+      </div>
+      
+      <div class="login-form-group">
+        <label class="login-form-label">Email Address</label>
+        <input type="email" id="loginEmail" class="login-input" placeholder="admin@nmsa.com atau admin-ipn@gmail.com" autocomplete="email">
+      </div>
+      
+      <div class="login-form-group">
+        <label class="login-form-label">Password</label>
+        <input type="password" id="loginPassword" class="login-input" placeholder="Masukkan password" autocomplete="current-password">
+      </div>
+      
+      <button class="login-btn-submit" id="loginSubmitBtn" onclick="handleLoginForm()">
+        Masuk ke Dashboard
+      </button>
+      
+      <div class="login-hint">
+        📌 Gunakan akun perusahaan Anda untuk login<br>
+        <strong>Data akan difilter otomatis sesuai perusahaan</strong>
+      </div>
+    </div>
+  </div>
 
   </main>
 
@@ -1052,28 +1474,20 @@ const app = initializeApp(...);
   <!-- 5. Google Drive Sync Functions -->
   <script src="js/drive-sync.js"></script>
   
-  <!-- 6. Main Application Logic (UI, Forms, etc.) -->
+  <!-- 6. Main Application Logic -->
   <script src="js/app.js"></script>
 
   <!-- ═══════════════════════════════════════════════════════════════════════════
-       ★ TAMBAHAN BARU: Inline Helper Functions untuk Upload UI
-       Fungsi-fungsi ini dipanggil dari event handlers di HTML
-       ═══════════════════════════════════════════════════════════════════════════ -->
+       INLINE HELPERS
+       ═════════════════════════════════════════════════════════════════════════ -->
   <script>
     /**
      * ============================================
      * INLINE HELPERS - Upload UI Functions
      * ============================================
-     * Fungsi-fungsi ini menangani interaksi UI upload
-     * dan dipanggil langsung dari HTML attributes
      */
     
     // ===== DRAG & DROP HANDLERS =====
-    
-    /**
-     * Handle drag over event
-     * @param {DragEvent} e - Drag event
-     */
     function handleDragOver(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -1083,10 +1497,6 @@ const app = initializeApp(...);
       }
     }
     
-    /**
-     * Handle drag leave event
-     * @param {DragEvent} e - Drag event
-     */
     function handleDragLeave(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -1096,10 +1506,6 @@ const app = initializeApp(...);
       }
     }
     
-    /**
-     * Handle drop event
-     * @param {DragEvent} e - Drop event
-     */
     function handleDrop(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -1109,14 +1515,10 @@ const app = initializeApp(...);
         uploadArea.classList.remove('drag-over');
       }
       
-      // Get dropped files
       const files = e.dataTransfer?.files;
       if (files && files.length > 0) {
-        // Set files to the hidden input
         const fileInput = document.getElementById('fileInput');
         if (fileInput) {
-          // Note: Cannot programmatically set files to input
-          // So we handle it differently - call the main handler directly
           if (typeof window.handleExternalFiles === 'function') {
             window.handleExternalFiles(files);
           } else {
@@ -1126,42 +1528,32 @@ const app = initializeApp(...);
       }
     }
     
-    // ===== FILE MANAGEMENT FUNCTIONS =====
-    
-    /**
-     * Clear all selected files from the upload area
-     */
+    // ===== FILE MANAGEMENT =====
     function clearSelectedFiles() {
-      // Clear state
       if (typeof window.state !== 'undefined') {
         window.state.selectedFiles = [];
       }
       
-      // Reset file input
       const fileInput = document.getElementById('fileInput');
       if (fileInput) {
         fileInput.value = '';
       }
       
-      // Clear display
       const fileListDisplay = document.getElementById('fileListDisplay');
       if (fileListDisplay) {
         fileListDisplay.innerHTML = '';
       }
       
-      // Show placeholder again
       const uploadPlaceholder = document.getElementById('uploadPlaceholder');
       if (uploadPlaceholder) {
         uploadPlaceholder.style.display = 'block';
       }
       
-      // Hide actions bar
       const selectedFilesActions = document.getElementById('selectedFilesActions');
       if (selectedFilesActions) {
         selectedFilesActions.style.display = 'none';
       }
       
-      // Hide drive link result
       const driveLinkResult = document.getElementById('driveLinkResult');
       if (driveLinkResult) {
         driveLinkResult.classList.remove('show');
@@ -1170,22 +1562,12 @@ const app = initializeApp(...);
       console.log('🗑️ All selected files cleared');
     }
     
-    /**
-     * Reset upload area to initial state
-     */
     function resetUploadArea() {
       clearSelectedFiles();
-      
-      // Hide progress
       hideUploadProgress();
     }
     
-    // ===== PROGRESS INDICATOR FUNCTIONS =====
-    
-    /**
-     * Show upload progress bar
-     * @param {number} percent - Progress percentage (0-100)
-     */
+    // ===== PROGRESS INDICATORS =====
     function showUploadProgress(percent = 0) {
       const container = document.getElementById('uploadProgressContainer');
       const bar = document.getElementById('uploadProgressBar');
@@ -1202,9 +1584,6 @@ const app = initializeApp(...);
       }
     }
     
-    /**
-     * Hide upload progress bar
-     */
     function hideUploadProgress() {
       const container = document.getElementById('uploadProgressContainer');
       const bar = document.getElementById('uploadProgressBar');
@@ -1218,11 +1597,7 @@ const app = initializeApp(...);
       }
     }
     
-    // ===== APPS SCRIPT CONFIG FUNCTIONS (for Setup Modal) =====
-    
-    /**
-     * Save Apps Script URL from setup modal
-     */
+    // ===== APPS SCRIPT CONFIG =====
     function saveAppsScriptUrl() {
       const input = document.getElementById('appsScriptUrlInput');
       const resultDiv = document.getElementById('appsScriptConnectionResult');
@@ -1236,13 +1611,11 @@ const app = initializeApp(...);
         return;
       }
       
-      // Validate URL format
       if (!url.includes('script.google.com')) {
         showAppsScriptResult(resultDiv, 'error', 'URL harus dari script.google.com');
         return;
       }
       
-      // Save using ConfigHelper or direct localStorage
       if (typeof window.APPS_SCRIPT_CONFIG !== 'undefined') {
         window.APPS_SCRIPT_CONFIG.setUrl(url);
       } else {
@@ -1253,16 +1626,11 @@ const app = initializeApp(...);
       }
       
       showAppsScriptResult(resultDiv, 'success', '✅ URL berhasil disimpan!');
-      
-      // Update architecture banner if visible
       updateArchBannerAppsScriptStatus(url);
       
       console.log('💾 Apps Script URL saved:', url);
     }
     
-    /**
-     * Test connection to Apps Script
-     */
     async function testAppsScriptConnection() {
       const resultDiv = document.getElementById('appsScriptConnectionResult');
       const url = typeof window.APPS_SCRIPT_CONFIG !== 'undefined' 
@@ -1284,9 +1652,8 @@ const app = initializeApp(...);
           body: JSON.stringify({ action: 'test_connection' })
         });
         
-        // With no-cors, we can't read response, so assume success after timeout
         setTimeout(() => {
-          showAppsScriptResult(resultDiv, 'success', '✅ Koneksi berhasil! (Response tidak terbaca karena CORS)');
+          showAppsScriptResult(resultDiv, 'success', '✅ Koneksi berhasil!');
         }, 1500);
         
       } catch (error) {
@@ -1294,9 +1661,6 @@ const app = initializeApp(...);
       }
     }
     
-    /**
-     * Show result message in apps script connection test
-     */
     function showAppsScriptResult(container, type, message) {
       if (!container) return;
       
@@ -1308,49 +1672,4 @@ const app = initializeApp(...);
           container.classList.add('bg-green-900/30', 'text-green-400', 'border', 'border-green-700/30');
           break;
         case 'error':
-          container.classList.add('bg-red-900/30', 'text-red-400', 'border', 'border-red-700/30');
-          break;
-        case 'uploading':
-          container.classList.add('bg-blue-900/30', 'text-blue-400', 'border', 'border-blue-700/30');
-          break;
-      }
-    }
-    
-    /**
-     * Update architecture banner with Apps Script status
-     */
-    function updateArchBannerAppsScriptStatus(url) {
-      const statusContainer = document.getElementById('archAppsScriptStatus');
-      const urlDisplay = document.getElementById('archAppsScriptUrlDisplay');
-      
-      if (statusContainer && url) {
-        statusContainer.style.display = 'block';
-        if (urlDisplay) {
-          urlDisplay.textContent = url.length > 30 ? url.substring(0, 30) + '...' : url;
-          urlDisplay.title = url;
-        }
-      }
-    }
-    
-    // ===== INITIALIZATION ON DOM LOAD =====
-    
-    document.addEventListener('DOMContentLoaded', function() {
-      // Display max size from config if available
-      const maxSizeDisplay = document.getElementById('maxSizeDisplay');
-      if (maxSizeDisplay && typeof window.UPLOAD_CONFIG !== 'undefined') {
-        maxSizeDisplay.textContent = window.UPLOAD_CONFIG.maxSizeDisplay;
-      }
-      
-      // Update Apps Script status in arch banner if configured
-      const appsScriptUrl = typeof window.APPS_SCRIPT_CONFIG !== 'undefined'
-        ? window.APPS_SCRIPT_CONFIG.getUrl()
-        : (window.state?.appsScriptUrl || '');
-      
-      if (appsScriptUrl) {
-        updateArchBannerAppsScriptStatus(appsScriptUrl);
-      }
-    });
-  </script>
-
-</body>
-</html>
+          container.classList.add('bg-red-900/
