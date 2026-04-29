@@ -1,20 +1,24 @@
 /**
  * ============================================
- * FinanceSync Pro v3.3 - Firebase Initialization
+ * FinanceSync Pro v3.4 - Firebase Initialization
  * ============================================
  * File ini menangani inisialisasi dan koneksi ke Firebase Firestore.
  * Ini adalah titik masuk utama untuk koneksi database.
  *
- * Version: 3.3.1
- * Update: Added Apps Script URL management & connection testing
+ * Version: 3.4.0
+ * Update: Added Authentication & Multi-Company Login Support
+ * Date: April 2026
+ *
+ * ★ PERUBAHAN (v3.4):
+ *    - Menambahkan Firebase Authentication (Email/Password)
+ *    - Menambahkan Login/Logout functions
+ *    - Auto-detect company saat user login
+ *    - Session management dengan localStorage
  */
 
 // ==================== LOAD SAVED CONFIGURATIONS ====================
 /**
  * Memuat konfigurasi yang tersimpan di localStorage
- * Termasuk:
- *   - Firebase config (JSON string)
- *   - Apps Script Web App URL
  */
 function loadSavedConfigs() {
   // Load Firebase config
@@ -51,7 +55,6 @@ function showBanner(type, title, message) {
   if (elements.bannerTitle) elements.bannerTitle.textContent = title;
   if (elements.bannerMessage) elements.bannerMessage.textContent = message;
   
-  // Auto-hide success banner setelah beberapa detik
   if (type === 'connected') {
     setTimeout(function() {
       if (banner) banner.style.display = 'none';
@@ -71,7 +74,6 @@ function updateConnectionUI(connected) {
   if (!dot || !text) return;
   
   if (connected) {
-    // Sukses terhubung
     elements.connectionBanner.className = 'connection-banner connected no-print';
     dot.className = 'status-dot success';
     text.textContent = 'Firestore Connected';
@@ -82,11 +84,9 @@ function updateConnectionUI(connected) {
       elements.bannerMessage.textContent = 'Data & File (Base64) akan disimpan ke Firestore. Apps Script akan sync ke Google Drive.';
     }
     
-    // Tampilkan architecture info
     if (elements.archBanner) elements.archBanner.style.display = 'block';
     
   } else {
-    // Gagal terhubung
     elements.connectionBanner.className = 'connection-banner error no-print';
     dot.className = 'status-dot error';
     text.textContent = 'Tidak Terhubung';
@@ -99,14 +99,298 @@ function updateConnectionUI(connected) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// ★★★ TAMBAHAN BARU (v3.4): AUTHENTICATION STATE ★★★
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Auth state reference (diisi setelah init)
+ */
+let authInstance = null;
+
+/**
+ * Cek apakah user sudah login
+ * @returns {boolean}
+ */
+function isLoggedIn() {
+  return state.auth.isAuthenticated && state.auth.currentUser !== null;
+}
+
+/**
+ * Get current logged-in user info
+ * @returns {Object|null} User object atau null
+ */
+function getCurrentUser() {
+  return state.auth.currentUser;
+}
+
+/**
+ * Get current company ID yang aktif
+ * @returns {string|null} 'nmsa', 'ipn', atau null
+ */
+function getActiveCompanyId() {
+  return state.auth.currentCompanyId;
+}
+
+/**
+ * Update UI untuk menampilkan status login & company
+ * Dipanggil setelah berhasil login atau logout
+ */
+function updateAuthUI() {
+  const userInfoEl = document.getElementById('userInfo');
+  const companyBadgeEl = document.getElementById('companyBadge');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  
+  if (isLoggedIn()) {
+    // User sudah login - tampilkan info
+    const user = getCurrentUser();
+    const company = getCurrentCompanyConfig();
+    
+    if (userInfoEl) {
+      userInfoEl.innerHTML = `
+        <span class="user-name">👤 ${user.displayName || user.email}</span>
+        <span class="user-email">${user.email}</span>
+      `;
+      userInfoEl.style.display = 'inline-block';
+    }
+    
+    if (companyBadgeEl && company) {
+      companyBadgeEl.innerHTML = `
+        <span class="company-icon">${company.branding.icon}</span>
+        <span class="company-name" style="color: ${company.branding.primaryColor}">
+          ${company.displayName}
+        </span>
+      `;
+      companyBadgeEl.style.display = 'inline-flex';
+    }
+    
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'inline-block';
+    
+    console.log(`[Auth] UI updated: Logged in as ${user.email} (${company ? company.displayName : 'No Company'})`);
+    
+  } else {
+    // Belum login - tampilkan tombol login
+    if (userInfoEl) userInfoEl.style.display = 'none';
+    if (companyBadgeEl) companyBadgeEl.style.display = 'none';
+    if (loginBtn) loginBtn.style.display = 'inline-block';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+    
+    console.log('[Auth] UI updated: Not logged in');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ★★★ TAMBAHAN BARU (v3.4): LOGIN FUNCTION ★★★
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Login user dengan email dan password
+ * Setelah login sukses, otomatis detect company dari email
+ * 
+ * @param {string} email - Email user
+ * @param {string} password - Password user
+ * @returns {Promise<Object>} {success: boolean, user?: Object, error?: string}
+ */
+async function loginUser(email, password) {
+  try {
+    console.log('[Auth] Attempting login for:', email);
+    
+    if (!authInstance) {
+      throw new Error('Firebase Auth belum diinisialisasi!');
+    }
+    
+    // Login dengan Firebase Auth
+    const userCredential = await authInstance.signInWithEmailAndPassword(email, password);
+    const firebaseUser = userCredential.user;
+    
+    console.log('[Auth] Firebase auth success! UID:', firebaseUser.uid);
+    
+    // Detect company berdasarkan email
+    let detectedCompanyId = null;
+    
+    for (const companyId of COMPANY_IDS) {
+      const companyCfg = COMPANY_CONFIG[companyId];
+      if (companyCfg.testCredentials && companyCfg.testCredentials.email === email) {
+        detectedCompanyId = companyId;
+        break;
+      }
+    }
+    
+    if (!detectedCompanyId) {
+      // Fallback: cek di Firestore collection users
+      try {
+        const userDoc = await state.db.collection('users')
+          .where('email', '==', email)
+          .limit(1)
+          .get();
+        
+        if (!userDoc.empty) {
+          detectedCompanyId = userDoc.docs[0].data().companyId;
+        }
+      } catch (err) {
+        console.warn('[Auth] Gagal ambil data user dari Firestore:', err);
+      }
+    }
+    
+    if (!detectedCompanyId) {
+      // Logout karena tidak ada akses ke company manapun
+      await authInstance.signOut();
+      throw new Error('Email ini tidak terdaftar untuk perusahaan manapun!');
+    }
+    
+    // Set state
+    state.auth.currentUser = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName || email.split('@')[0]
+    };
+    state.auth.isAuthenticated = true;
+    
+    // Set active company
+    setCurrentCompany(detectedCompanyId);
+    
+    // Simpan session ke localStorage
+    localStorage.setItem(CONFIG_KEYS.CURRENT_USER_SESSION, JSON.stringify({
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName || email.split('@')[0],
+      companyId: detectedCompanyId,
+      loginTime: new Date().toISOString()
+    }));
+    
+    console.log(`[Auth] ✅ Login berhasil! Company: ${COMPANY_CONFIG[detectedCompanyId].displayName}`);
+    
+    // Update UI
+    updateAuthUI();
+    
+    return {
+      success: true,
+      user: state.auth.currentUser,
+      companyId: detectedCompanyId,
+      companyName: COMPANY_CONFIG[detectedCompanyId].displayName
+    };
+    
+  } catch (error) {
+    console.error('[Auth] Login error:', error.code, error.message);
+    
+    // Mapping error code ke pesan yang lebih friendly
+    let friendlyMessage = error.message;
+    if (error.code === 'auth/user-not-found') {
+      friendlyMessage = 'Email tidak ditemukan!';
+    } else if (error.code === 'auth/wrong-password') {
+      friendlyMessage = 'Password salah!';
+    } else if (error.code === 'auth/too-many-requests') {
+      friendlyMessage = 'Terlalu banyak percobaan. Coba lagi beberapa menit.';
+    } else if (error.code === 'auth/invalid-email') {
+      friendlyMessage = 'Format email tidak valid!';
+    }
+    
+    return {
+      success: false,
+      error: friendlyMessage
+    };
+  }
+}
+
+/**
+ * Logout user
+ * Menghapus session dan reset state
+ * 
+ * @returns {Promise<void>}
+ */
+async function logoutUser() {
+  try {
+    console.log('[Auth] Logging out...');
+    
+    // Sign out dari Firebase Auth
+    if (authInstance) {
+      await authInstance.signOut();
+    }
+    
+    // Clear semua state
+    clearCurrentCompany();
+    
+    // Update UI
+    updateAuthUI();
+    
+    showToast('👋 Berhasil logout!', 'success');
+    console.log('[Auth] ✅ Logout berhasil!');
+    
+    // Optional: redirect ke halaman login atau refresh
+    // window.location.reload();
+    
+  } catch (error) {
+    console.error('[Auth] Logout error:', error);
+    showToast('Gagal logout: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Restore session dari localStorage (dipanggil saat load aplikasi)
+ * Cek apakah ada session tersimpan dan masih valid
+ * 
+ * @returns {Promise<boolean>} true jika session valid, false jika tidak
+ */
+async function restoreSession() {
+  try {
+    const sessionStr = localStorage.getItem(CONFIG_KEYS.CURRENT_USER_SESSION);
+    
+    if (!sessionStr) {
+      console.log('[Auth] Tidak ada session tersimpan');
+      return false;
+    }
+    
+    const sessionData = JSON.parse(sessionStr);
+    
+    console.log('[Auth] Mencoba restore session untuk:', sessionData.email);
+    
+    // Cek apakah Firebase Auth masih aktif (tidak expired)
+    if (authInstance && authInstance.currentUser) {
+      // User masih login di Firebase Auth
+      state.auth.currentUser = {
+        uid: authInstance.currentUser.uid,
+        email: authInstance.currentUser.email,
+        displayName: authInstance.currentUser.displayName || sessionData.displayName
+      };
+      state.auth.isAuthenticated = true;
+      
+      // Restore company
+      if (sessionData.companyId && COMPANY_CONFIG[sessionData.companyId]) {
+        setCurrentCompany(sessionData.companyId);
+      }
+      
+      console.log(`[Auth] ✅ Session restored! Company: ${state.auth.currentCompanyData?.displayName}`);
+      updateAuthUI();
+      return true;
+      
+    } else {
+      // Session di localStorage tapi Firebase Auth sudah expired
+      console.warn('[Auth] Session expired (Firebase Auth tidak aktif)');
+      clearCurrentCompany();
+      return false;
+    }
+    
+  } catch (error) {
+    console.error('[Auth] Restore session error:', error);
+    clearCurrentCompany();
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// END OF AUTHENTICATION FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
 // ==================== INITIALIZE FIREBASE CONNECTION ====================
 /**
  * Fungsi utama untuk inisialisasi koneksi Firebase
- * Langkah-langkah:
- * 1. Cek apakah ada config tersimpan di localStorage
- * 2. Jika ada, inisialisasi Firebase dengan config tersebut
- * 3. Test koneksi dengan query sederhana
- * 4. Update UI sesuai hasil
+ * 
+ * ★ UPDATE (v3.4):
+ *    - Sekarang juga menginisialisasi Firebase Auth
+ *    - Auto-restore session jika ada
+ *    - Setelah connect, cek auth state
  */
 async function initConnection() {
   // Tampilkan status "menghubungkan"
@@ -116,7 +400,6 @@ async function initConnection() {
   const hasConfig = !!localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG);
 
   if (!hasConfig) {
-    // Jika tidak ada config, tampilkan setup modal setelah delay
     console.warn('[Firebase] No config found! Showing setup modal...');
     
     setTimeout(function() { 
@@ -139,6 +422,10 @@ async function initConnection() {
       console.log('[Firebase] App initialized successfully');
     }
     
+    // ★★★ BARU (v3.4): Inisialisasi Firebase Auth ★★★
+    authInstance = firebase.auth();
+    console.log('[Firebase] Auth initialized');
+    
     // Dapatkan Firestore instance
     state.db = firebase.firestore();
     
@@ -152,8 +439,16 @@ async function initConnection() {
     
     console.log('[Firebase] ✅ Connected successfully!');
     
-    // Update UI
+    // Update UI koneksi
     updateConnectionUI(true);
+    
+    // ★★★ BARU (v3.4): Restore auth session jika ada ★★★
+    const sessionRestored = await restoreSession();
+    
+    if (sessionRestored) {
+      showBanner('connected', '✅ Terhubung & Login', 
+        `Selamat datang! ${getCurrentCompanyConfig()?.displayName || ''}`);
+    }
     
     // Mulai listener untuk data
     applyDateFilter();
@@ -174,7 +469,6 @@ async function initConnection() {
 // ==================== SAVE FIREBASE CONFIG ====================
 /**
  * Menyimpan konfigurasi Firebase ke localStorage dan menginisialisasi ulang
- * Fungsi ini dipanggil dari modal setup saat user klik "Simpan & Connect"
  */
 window.saveFirebaseConfig = async function() {
   try {
@@ -182,19 +476,16 @@ window.saveFirebaseConfig = async function() {
     const inputStr = inputEl ? inputEl.value.trim() : '';
     const errorEl = document.getElementById('configError');
     
-    // Reset error display
     if (errorEl) { 
       errorEl.classList.add('hidden'); 
       errorEl.textContent = ''; 
     }
     
-    // Validasi: cek apakah input kosong
     if (!inputStr) { 
       showError('Paste Firebase config!'); 
       return; 
     }
     
-    // Validasi: parse JSON
     let config;
     try { 
       config = JSON.parse(inputStr); 
@@ -203,23 +494,18 @@ window.saveFirebaseConfig = async function() {
       return; 
     }
     
-    // Validasi: cek field wajib
     if (!config.apiKey || !config.projectId) { 
       showError('Config tidak lengkap! Pastikan apiKey dan projectId.'); 
       return; 
     }
     
-    // Simpan ke localStorage
     localStorage.setItem(CONFIG_KEYS.FIREBASE_CONFIG, JSON.stringify(config));
     console.log('[Config] Saved to localStorage');
     
-    // Tampilkan feedback
     showToast('Config tersimpan! Menghubungkan...', 'info');
     
-    // Tutup modal
     closeSetupModal();
     
-    // Re-inisialisasi koneksi dengan config baru
     await initConnection();
     
   } catch (error) {
@@ -243,7 +529,6 @@ function showError(msg) {
 
 // ═══════════════════════════════════════════════════════════════
 // ★ TAMBAHAN BARU: TEST APPS SCRIPT CONNECTION
-//    Dipanggil dari setup modal step 3 atau tombol test
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -264,9 +549,8 @@ window.testAppsScriptConnection = async function() {
     
     console.log('[Test] Testing connection to:', url.substring(0, 60) + '...');
     
-    // Coba fetch sederhana dengan timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 detik timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     
     const response = await fetch(url, {
       method: 'POST',
@@ -278,7 +562,6 @@ window.testAppsScriptConnection = async function() {
     
     clearTimeout(timeoutId);
     
-    // Dengan no-cors, jika tidak error = sukses
     console.log('[Test] Response received (no-cors mode)');
     
     showToast('✅ Koneksi Apps Script berhasil!', 'success');
@@ -293,22 +576,22 @@ window.testAppsScriptConnection = async function() {
     
     return false;
   }
-}
+};
 
 /**
  * Get Apps Script URL (wrapper function)
- * Mendukung baik dari state maupun CONFIG_KEYS
- * 
- * @returns {string} URL kosong jika tidak ada
+ * @returns {string}
  */
 function getAppsScriptUrl() {
   return state.appsScriptUrl || 
          localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL) || '';
 }
 
-/**
- * Export functions for global access
- */
+// ═══════════════════════════════════════════════════════════════
+// ★★★ EXPORT FUNCTIONS FOR GLOBAL ACCESS ★★★
+// ═══════════════════════════════════════════════════════════════
+
+// Export original functions
 window.loadSavedConfigs = loadSavedConfigs;
 window.showBanner = showBanner;
 window.updateConnectionUI = updateConnectionUI;
@@ -316,5 +599,15 @@ window.initConnection = initConnection;
 window.saveFirebaseConfig = saveFirebaseConfig;
 window.showError = showError;
 
+// ★★★ EXPORT TAMBAHAN BARU (v3.4): Authentication Functions ★★★
+window.loginUser = loginUser;
+window.logoutUser = logoutUser;
+window.restoreSession = restoreSession;
+window.isLoggedIn = isLoggedIn;
+window.getCurrentUser = getCurrentUser;
+window.getActiveCompanyId = getActiveCompanyId;
+window.updateAuthUI = updateAuthUI;
+
 // ═══════════════════════════════════════════════════════════════
-// END OF FILE - firebase-init.js
+// END OF FILE - firebase-init.js v3.4.0 (Multi-Company Auth Ready)
+// ═══════════════════════════════════════════════════════════════
