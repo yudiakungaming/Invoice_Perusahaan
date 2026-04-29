@@ -5,19 +5,27 @@
  * File ini berisi semua konfigurasi dan variabel global
  * yang digunakan di seluruh aplikasi.
  * 
- * Version: 3.3.1
- * Update: Added Google Drive Integration Config
- * Date: December 2024
+ * Version: 3.4.0
+ * Update: Added Multi-Company Support (NMSA & IPN)
+ * Date: April 2026
+ * 
+ * ★ PERUBAHAN: Sekarang mendukung 2 perusahaan dalam 1 aplikasi!
+ *    - PT Nusantara Mineral Sukses Abadi (NMSA)
+ *    - PT Industri Padi Nusantara (IPN)
  */
 
 // ==================== CONFIGURATION KEYS ====================
 const CONFIG_KEYS = {
-  FIREBASE_CONFIG: 'financesync_firebase_config_v33',
-  APPS_SCRIPT_URL: 'financesync_apps_script_url_v33',
+  FIREBASE_CONFIG: 'financesync_firebase_config_v34',
+  APPS_SCRIPT_URL: 'financesync_apps_script_url_v34',
   
   // ★ TAMBAHAN BARU: Keys untuk pengaturan upload
-  UPLOAD_MAX_SIZE: 'financesync_upload_max_size_v33',
-  UPLOAD_ALLOWED_TYPES: 'financesync_upload_allowed_types_v33'
+  UPLOAD_MAX_SIZE: 'financesync_upload_max_size_v34',
+  UPLOAD_ALLOWED_TYPES: 'financesync_upload_allowed_types_v34',
+  
+  // ★★★ TAMBAHAN BARU (v3.4): Multi-Company Session ★★★
+  CURRENT_COMPANY_ID: 'financesync_current_company_id',
+  CURRENT_USER_SESSION: 'financesync_user_session'
 };
 
 // ==================== GLOBAL STATE ====================
@@ -61,14 +69,24 @@ const state = {
   
   // ═══════════════════════════════════════════════════════════════
   // ★ TAMBAHAN BARU: Google Drive Integration State
-  //    Untuk melacak status upload dan proses Drive sync
   // ═══════════════════════════════════════════════════════════════
   driveIntegration: {
-    isUploading: false,           // Sedang proses upload?
-    uploadProgress: 0,            // Progress percentage (0-100)
-    lastUploadedFile: null,       // Info file terakhir diupload
-    driveLink: '',                // Link Google Drive hasil upload
-    uploadError: null             // Error message jika gagal
+    isUploading: false,
+    uploadProgress: 0,
+    lastUploadedFile: null,
+    driveLink: '',
+    uploadError: null
+  },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // ★★★ TAMBAHAN BARU (v3.4): Multi-Company State ★★★
+  //    Untuk melacak company yang sedang aktif dan user login
+  // ═══════════════════════════════════════════════════════════════
+  auth: {
+    currentUser: null,           // Object user dari Firebase Auth
+    currentCompanyId: null,      // ID company yang sedang aktif ('nmsa' atau 'ipn')
+    currentCompanyData: null,    // Data lengkap company dari Firestore
+    isAuthenticated: false       // Status apakah user sudah login
   }
 };
 
@@ -89,8 +107,176 @@ const DEFAULT_SIGNATORIES = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// ★★★ TAMBAHAN BARU (v3.4): MULTI-COMPANY CONFIGURATION ★★★
+//    Konfigurasi untuk 2 perusahaan: NMSA dan IPN
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * COMPANY_CONFIG - Konfigurasi lengkap untuk setiap perusahaan
+ * 
+ * Struktur:
+ * - id: ID unik company (sesuai document ID di Firestore)
+ * - code: Kode singkat
+ * - name: Nama resmi perusahaan
+ * - displayName: Nama tampilan di UI
+ * - no_invoice_prefix: Prefix nomor invoice (contoh: "BKK-NMSA")
+ * - branding: Warna tema untuk UI
+ */
+const COMPANY_CONFIG = {
+  nmsa: {
+    id: 'nmsa',
+    code: 'NMSA',
+    name: 'PT Nusantara Mineral Sukses Abadi',
+    displayName: 'Invoice-NMSA',
+    no_invoice_prefix: 'BKK-NMSA',
+    
+    // Branding & UI
+    branding: {
+      primaryColor: '#2563eb',      // Blue
+      secondaryColor: '#1e40af',
+      logoUrl: '',
+      icon: '🏢'
+    },
+    
+    // Default signatures untuk company ini (bisa beda per company)
+    defaultSignatures: {
+      dibuat_oleh: 'Nur Wahyudi',
+      disetujui_oleh: 'Harijon',
+      keuangan: 'Andi Dhiya Salsabila',
+      dir_keuangan: 'Harijon',
+      direktur_utama: 'H. Andi Nursyam Halid',
+      accounting: 'Sri Ekowati'
+    },
+    
+    // Default values untuk form
+    defaults: {
+      lokasi: 'Lt. 1',
+      kode: 'LP',
+      jenis_pengajuan: 'Biaya Operasional'
+    },
+    
+    // User credentials (untuk testing/dev - hapus di production!)
+    testCredentials: {
+      email: 'admin@nmsa.com',
+      password: 'Nmsa2024!'  // ← Ganti dengan password yang Anda buat!
+    }
+  },
+  
+  ipn: {
+    id: 'ipn',
+    code: 'IPN',
+    name: 'PT Industri Padi Nusantara',
+    displayName: 'Invoice-IPN',
+    no_invoice_prefix: 'BKK-IPN',
+    
+    // Branding & UI
+    branding: {
+      primaryColor: '#dc2626',      // Red (beda dari NMSA!)
+      secondaryColor: '#991b1b',
+      logoUrl: '',
+      icon: '🏭'
+    },
+    
+    // Default signatures untuk IPN (bisa beda!)
+    defaultSignatures: {
+      dibuat_oleh: 'Admin IPN',        // ← Sesuaikan dengan orang IPN
+      disetujui_oleh: 'Manager IPN',   // ← Sesuaikan
+      keuangan: 'Finance IPN',         // ← Sesuaikan
+      dir_keuangan: 'Director IPN',    // ← Sesuaikan
+      direktur_utama: 'Direktur IPN',  // ← Sesuaikan
+      accounting: 'Accounting IPN'     // ← Sesuaikan
+    },
+    
+    // Default values untuk form
+    defaults: {
+      lokasi: 'Lt. 2',
+      kode: 'LP',
+      jenis_pengajuan: 'Biaya Operasional'
+    },
+    
+    // User credentials (untuk testing/dev)
+    testCredentials: {
+      email: 'admin-ipn@gmail.com',
+      password: 'Ipn2024!'  // ← Ganti dengan password yang Anda buat!
+    }
+  }
+};
+
+/**
+ * Daftar semua company IDs (untuk iterasi)
+ */
+const COMPANY_IDS = ['nmsa', 'ipn'];
+
+/**
+ * Get company config by ID
+ * @param {string} companyId - ID company ('nmsa' atau 'ipn')
+ * @returns {Object|null} Company config object atau null jika tidak ditemukan
+ */
+function getCompanyConfig(companyId) {
+  return COMPANY_CONFIG[companyId] || null;
+}
+
+/**
+ * Get current active company config
+ * @returns {Object|null} Config company yang sedang aktif
+ */
+function getCurrentCompanyConfig() {
+  const companyId = state.auth.currentCompanyId;
+  return companyId ? COMPANY_CONFIG[companyId] : null;
+}
+
+/**
+ * Set current active company
+ * @param {string} companyId - ID company ('nmsa' atau 'ipn')
+ */
+function setCurrentCompany(companyId) {
+  if (COMPANY_CONFIG[companyId]) {
+    state.auth.currentCompanyId = companyId;
+    state.auth.currentCompanyData = COMPANY_CONFIG[companyId];
+    // Simpan ke localStorage agar persisten
+    localStorage.setItem(CONFIG_KEYS.CURRENT_COMPANY_ID, companyId);
+    console.log(`✅ Company aktif diubah ke: ${COMPANY_CONFIG[companyId].displayName}`);
+    return true;
+  } else {
+    console.error(`❌ Company ID tidak valid: ${companyId}`);
+    return false;
+  }
+}
+
+/**
+ * Clear current company (logout)
+ */
+function clearCurrentCompany() {
+  state.auth.currentCompanyId = null;
+  state.auth.currentCompanyData = null;
+  state.auth.currentUser = null;
+  state.auth.isAuthenticated = false;
+  localStorage.removeItem(CONFIG_KEYS.CURRENT_COMPANY_ID);
+  localStorage.removeItem(CONFIG_KEYS.CURRENT_USER_SESSION);
+  console.log('🔄 Company session di-clear');
+}
+
+/**
+ * Initialize company from saved session
+ * Dipanggil saat aplikasi pertama kali load
+ */
+function initializeCompanySession() {
+  const savedCompanyId = localStorage.getItem(CONFIG_KEYS.CURRENT_COMPANY_ID);
+  if (savedCompanyId && COMPANY_CONFIG[savedCompanyId]) {
+    state.auth.currentCompanyId = savedCompanyId;
+    state.auth.currentCompanyData = COMPANY_CONFIG[savedCompanyId];
+    console.log(`📦 Session ditemukan: ${COMPANY_CONFIG[savedCompanyId].displayName}`);
+    return true;
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// END OF MULTI-COMPANY CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
 // ★ TAMBAHAN BARU: FIREBASE CONFIGURATION
-//    Konfigurasi detail koneksi Firebase Firestore
 // ═══════════════════════════════════════════════════════════════
 const FIREBASE_CONFIG = {
   projectId: 'ai-devender-7b55c',
@@ -98,6 +284,8 @@ const FIREBASE_CONFIG = {
   // Nama koleksi Firestore yang digunakan
   collections: {
     submissions: 'submissions',           // Koleksi utama submission/pengajuan
+    companies: 'companies',               // ★★★ BARU: Koleksi config perusahaan
+    users: 'users',                       // ★★★ BARU: Koleksi data user
     uploadLogs: 'upload_logs',            // Log upload file (opsional)
     settings: 'settings'                  // Pengaturan aplikasi (opsional)
   },
@@ -116,32 +304,30 @@ const FIREBASE_CONFIG = {
     dibayarkan_kepada: 'dibayarkan_kepada',
     catatan_tambahan: 'catatan_tambahan',
     
+    // ★★★ BARU: Field untuk multi-company filtering
+    companyId: 'company_id',              // ID company (nmsa/ipn)
+    companyName: 'company_name',          // Nama company untuk display
+    
     // Fields Google Drive integration
-    googleDriveLink: 'google_drive_link',   // Link file di Google Drive
-    fileName: 'nama_file',                   // Nama asli file
-    fileId: 'file_id',                       // ID file di Google Drive
-    fileSize: 'file_size',                   // Ukuran file dalam bytes
-    mimeType: 'mime_type',                   // Tipe MIME file
-    uploadedAt: 'uploaded_at'                // Timestamp upload
+    googleDriveLink: 'google_drive_link',
+    fileName: 'nama_file',
+    fileId: 'file_id',
+    fileSize: 'file_size',
+    mimeType: 'mime_type',
+    uploadedAt: 'uploaded_at'
   }
 };
 
 // ═══════════════════════════════════════════════════════════════
 // ★ TAMBAHAN BARU: UPLOAD CONFIGURATION
-//    Pengaturan batas dan jenis file yang bisa diupload
 // ═══════════════════════════════════════════════════════════════
 const UPLOAD_CONFIG = {
-  // Batas ukuran file (dalam bytes)
-  maxSizeBytes: 30 * 1024 * 1024,      // 30 MB (aman untuk base64 encoding)
-  maxSizeDisplay: '30MB',              // Untuk tampilan di UI
-  
-  // Ukuran warning (akan muncul peringatan)
-  warningSizeBytes: 10 * 1024 * 1024,  // 10 MB
+  maxSizeBytes: 30 * 1024 * 1024,
+  maxSizeDisplay: '30MB',
+  warningSizeBytes: 10 * 1024 * 1024,
   warningSizeDisplay: '10MB',
   
-  // Tipe MIME yang diizinkan
   allowedMimeTypes: [
-    // Documents
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -149,24 +335,17 @@ const UPLOAD_CONFIG = {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    
-    // Images
     'image/jpeg',
     'image/png',
     'image/gif',
     'image/webp',
     'image/bmp',
-    
-    // Archives (jika diperlukan)
     'application/zip',
     'application/x-rar-compressed',
-    
-    // Text
     'text/plain',
     'text/csv'
   ],
   
-  // Extension file yang diizinkan (untuk validasi cepat)
   allowedExtensions: [
     '.pdf',
     '.doc', '.docx',
@@ -177,34 +356,29 @@ const UPLOAD_CONFIG = {
     '.txt', '.csv'
   ],
   
-  // Pengaturan Google Drive folder
   drive: {
-    defaultFolderName: 'Submission_Files_FinanceSync',  // Nama folder default di Drive
-    folderId: ''  // ID folder spesifik (kosong = auto-create)
+    defaultFolderName: 'Submission_Files_FinanceSync',
+    folderId: ''
   },
   
-  // Validasi tambahan
   validation: {
-    maxFileNameLength: 255,              // Maksimal panjang nama file
-    blockedPatterns: [                   // Pattern nama file yang diblokir
-      /\.\./,                           // Path traversal
-      /[<>:"|?*]/,                      // Karakter ilegal Windows
-      /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i  // Reserved names
+    maxFileNameLength: 255,
+    blockedPatterns: [
+      /\.\./,
+      /[<>:"|?*]/,
+      /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i
     ]
   }
 };
 
 // ═══════════════════════════════════════════════════════════════
 // ★ TAMBAHAN BARU: APPS SCRIPT ENDPOINT CONFIGURATION
-//    URL dan pengaturan untuk komunikasi dengan Google Apps Script
 // ═══════════════════════════════════════════════════════════════
 const APPS_SCRIPT_CONFIG = {
-  // URL Web App (akan diambil dari localStorage atau default)
   getUrl: function() {
     return localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL) || '';
   },
   
-  // Set URL (simpan ke localStorage)
   setUrl: function(url) {
     if (url && url.trim() !== '') {
       localStorage.setItem(CONFIG_KEYS.APPS_SCRIPT_URL, url.trim());
@@ -214,50 +388,39 @@ const APPS_SCRIPT_CONFIG = {
     return false;
   },
   
-  // Clear URL
   clearUrl: function() {
     localStorage.removeItem(CONFIG_KEYS.APPS_SCRIPT_URL);
     state.appsScriptUrl = '';
   },
   
-  // Cek apakah URL sudah dikonfigurasi
   isConfigured: function() {
     const url = this.getUrl();
     return url && url.trim() !== '' && url.includes('script.google.com');
   },
   
-  // Action types yang didukung
   actions: {
-    SAVE_SUBMISSION: 'save',           // Simpan data + file sekaligus
-    SYNC_SHEET: 'sync',                // Force sync Firebase → Sheet
-    UPLOAD_ONLY: 'upload_only',        // Upload file saja (tanpa simpan data)
-    TEST_CONNECTION: 'test_connection' // Test koneksi ke Apps Script
+    SAVE_SUBMISSION: 'save',
+    SYNC_SHEET: 'sync',
+    UPLOAD_ONLY: 'upload_only',
+    TEST_CONNECTION: 'test_connection'
   },
   
-  // Timeout settings (dalam milidetik)
   timeout: {
-    normal: 30000,       // 30 detik untuk operasi normal
-    upload: 120000,      // 2 menit untuk upload file
-    largeFile: 300000    // 5 menit untuk file besar (>20MB)
+    normal: 30000,
+    upload: 120000,
+    largeFile: 300000
   }
 };
 
 // ═══════════════════════════════════════════════════════════════
 // ★ TAMBAHAN BARU: HELPER FUNCTIONS UNTUK CONFIG
-//    Utility functions terkait konfigurasi
 // ═══════════════════════════════════════════════════════════════
 const ConfigHelper = {
-  /**
-   * Validasi apakah file bisa diupload berdasarkan konfigurasi
-   * @param {File} file - File object yang akan divalidasi
-   * @returns {Object} {valid: boolean, error: string|null}
-   */
   validateFile: function(file) {
     if (!file) {
       return { valid: false, error: 'Tidak ada file yang dipilih' };
     }
     
-    // Cek ukuran file
     if (file.size > UPLOAD_CONFIG.maxSizeBytes) {
       return {
         valid: false,
@@ -266,12 +429,10 @@ const ConfigHelper = {
       };
     }
     
-    // Warning untuk file cukup besar
     if (file.size > UPLOAD_CONFIG.warningSizeBytes) {
       console.warn(`⚠️ File cukup besar (${(file.size/1024/1024).toFixed(2)}MB), upload mungkin memerlukan waktu lebih lama`);
     }
     
-    // Cek extension file
     const fileName = file.name.toLowerCase();
     const ext = '.' + fileName.split('.').pop();
     
@@ -283,12 +444,10 @@ const ConfigHelper = {
       };
     }
     
-    // Cek MIME type (jika tersedia)
     if (file.type && !UPLOAD_CONFIG.allowedMimeTypes.includes(file.type)) {
       console.warn(`⚠️ MIME type tidak dikenali: ${file.type}, melanjutkan berdasarkan extension...`);
     }
     
-    // Cek panjang nama file
     if (file.name.length > UPLOAD_CONFIG.validation.maxFileNameLength) {
       return {
         valid: false,
@@ -296,12 +455,11 @@ const ConfigHelper = {
       };
     }
     
-    // Cek pattern nama file yang diblokir
     for (const pattern of UPLOAD_CONFIG.validation.blockedPatterns) {
       if (pattern.test(file.name)) {
         return {
           valid: false,
-          error: 'Nama file mengand karakter atau pattern yang tidak diizinkan'
+          error: 'Nama file mengandung karakter atau pattern yang tidak diizinkan'
         };
       }
     }
@@ -309,11 +467,6 @@ const ConfigHelper = {
     return { valid: true, error: null };
   },
   
-  /**
-   * Format ukuran file menjadi string readable
-   * @param {number} bytes - Ukuran dalam bytes
-   * @returns {string} Ukuran formatted (contoh: "2.5 MB")
-   */
   formatFileSize: function(bytes) {
     if (bytes === 0) return '0 Bytes';
     
@@ -324,11 +477,6 @@ const ConfigHelper = {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   },
   
-  /**
-   * Get MIME type dari extension file
-   * @param {string} filename - Nama file
-   * @returns {string} MIME type
-   */
   getMimeTypeFromExtension: function(filename) {
     const ext = filename.toLowerCase().split('.').pop();
     
@@ -355,10 +503,6 @@ const ConfigHelper = {
     return mimeMap[ext] || 'application/octet-stream';
   },
   
-  /**
-   * Cek apakah Apps Script URL sudah siap digunakan
-   * @returns {Object} {ready: boolean, message: string}
-   */
   checkAppsScriptReady: function() {
     if (!APPS_SCRIPT_CONFIG.isConfigured()) {
       return {
@@ -372,6 +516,88 @@ const ConfigHelper = {
       ready: true,
       message: '✅ Apps Script siap digunakan'
     };
+  },
+  
+  // ═══════════════════════════════════════════════════════════════
+  // ★★★ TAMBAHAN BARU (v3.4): Company Helper Functions ★★★
+  // ═══════════════════════════════════════════════════════════════
+  
+  /**
+   * Generate nomor invoice otomatis berdasarkan company
+   * Format: BKK-{CODE}/{MM}/YY/{XXXX}
+   * Contoh: BKK-NMSA/04/26/00105
+   * 
+   * @param {string} companyId - ID company
+   * @param {number} nextNumber - Nomor urut selanjutnya
+   * @returns {string} Nomor invoice formatted
+   */
+  generateInvoiceNumber: function(companyId, nextNumber) {
+    const config = getCompanyConfig(companyId);
+    if (!config) {
+      console.error('Company config not found for:', companyId);
+      return 'UNKNOWN-ERROR';
+    }
+    
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = String(now.getFullYear()).slice(-2);
+    const num = String(nextNumber).padStart(5, '0');
+    
+    return `${config.no_invoice_prefix}/${month}/${year}/${num}`;
+  },
+  
+  /**
+   * Get default signatures untuk company tertentu
+   * Jika company tidak punya signature custom, pakai global DEFAULT_SIGNATORIES
+   * 
+   * @param {string} companyId - ID company
+   * @returns {Object} Signatures object
+   */
+  getSignaturesForCompany: function(companyId) {
+    const config = getCompanyConfig(companyId);
+    if (config && config.defaultSignatures) {
+      return config.defaultSignatures;
+    }
+    // Fallback ke default global
+    return DEFAULT_SIGNATORIES;
+  },
+  
+  /**
+   * Get default form values untuk company tertentu
+   * 
+   * @param {string} companyId - ID company
+   * @returns {Object} Default values
+   */
+  getDefaultsForCompany: function(companyId) {
+    const config = getCompanyConfig(companyId);
+    if (config && config.defaults) {
+      return { ...config.defaults };
+    }
+    return {
+      lokasi: '',
+      kode: 'LP',
+      jenis_pengajuan: ''
+    };
+  },
+  
+  /**
+   * Cek apakah user memiliki akses ke company tertentu
+   * 
+   * @param {string} userEmail - Email user
+   * @param {string} companyId - ID company yang dicek
+   * @returns {boolean}
+   */
+  hasAccessToCompany: function(userEmail, companyId) {
+    const config = getCompanyConfig(companyId);
+    if (!config) return false;
+    
+    // Cek apakah email cocok dengan test credentials
+    // Di production, cek dari database users collection
+    if (config.testCredentials && config.testCredentials.email === userEmail) {
+      return true;
+    }
+    
+    return false;
   }
 };
 
@@ -382,14 +608,28 @@ window.state = state;
 window.elements = elements;
 window.DEFAULT_SIGNATORIES = DEFAULT_SIGNATORIES;
 
-// ★ EXPORT TAMBAHAN BARU
+// ★ EXPORT ORIGINAL
 window.FIREBASE_CONFIG = FIREBASE_CONFIG;
 window.UPLOAD_CONFIG = UPLOAD_CONFIG;
 window.APPS_SCRIPT_CONFIG = APPS_SCRIPT_CONFIG;
 window.ConfigHelper = ConfigHelper;
 
+// ★★★ EXPORT TAMBAHAN BARU (v3.4): Multi-Company ★★★
+window.COMPANY_CONFIG = COMPANY_CONFIG;
+window.COMPANY_IDS = COMPANY_IDS;
+window.getCompanyConfig = getCompanyConfig;
+window.getCurrentCompanyConfig = getCurrentCompanyConfig;
+window.setCurrentCompany = setCurrentCompany;
+window.clearCurrentCompany = clearCurrentCompany;
+window.initializeCompanySession = initializeCompanySession;
+
 // ═══════════════════════════════════════════════════════════════
-// ★ END OF MODIFICATIONS
-//    Semua konfigurasi original tetap utuh dan tidak diubah
-//    Hanya penambahan baru untuk mendukung Google Drive integration
+// ★ AUTO-INITIALIZE COMPANY SESSION ON LOAD ★★★
+//    Panggil fungsi ini saat aplikasi pertama kali load
+//    untuk memulihkan session company dari localStorage
+// ═══════════════════════════════════════════════════════════════
+initializeCompanySession();
+
+// ═══════════════════════════════════════════════════════════════
+// END OF FILE - config.js v3.4.0 (Multi-Company Ready)
 // ═══════════════════════════════════════════════════════════════
