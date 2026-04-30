@@ -492,7 +492,7 @@
       '<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="it-' + n + '">' +
       '<div class="col-span-5"><input type="text" name="in_' + n + '" class="input-field text-sm" placeholder="Nama barang/jasa" value="' + escapeHtml(d.ket || d.name || '') + '"></div>' +
       '<div class="col-span-2"><input type="number" name="iq_' + n + '" class="input-field text-sm text-center" placeholder="Qty" value="' + (d.qty || 1) + '" min="1"></div>' +
-      <div class="col-span-3"><input type="number" name="ip_' + n + '" class="input-field text-sm mono" placeholder="Harga" value="' + (d.nominal || d.price || '') + '" min="0"></div>' +
+      '<div class="col-span-3"><input type="number" name="ip_' + n + '" class="input-field text-sm mono" placeholder="Harga" value="' + (d.nominal || d.price || '') + '" min="0"></div>' +
       '<div class="col-span-2 flex items-center justify-end gap-1">' +
         '<span class="text-[10px] font-mono text-[--muted]" id="sub-' + n + '">Rp 0</span>' +
         (n > 1 ? '<button type="button" onclick="rmItem(' + n + ')" class="w-6 h-6 rounded bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs flex items-center justify-center transition-colors">×</button>' : '') +
