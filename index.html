@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinanceSync Pro v3.4 - FIXED VERSION</title>
+  <title>FinanceSync Pro v3.5 - Multi-Company Edition</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -139,19 +139,6 @@
     .btn-setup:hover {
       background: rgba(255, 255, 255, 0.1);
       border-color: var(--drive);
-    }
-
-    .btn-secondary {
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--fg);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
     }
 
     .btn-add-item {
@@ -818,8 +805,8 @@
               💰
             </div>
             <div>
-              <h1 class="text-lg font-semibold">FinanceSync Pro <span class="text-xs text-[--muted] font-normal ml-1">v3.4</span></h1>
-              <p class="text-xs text-[--muted]">Multi-Company Edition</p>
+              <h1 class="text-lg font-semibold">FinanceSync Pro <span class="text-xs text-[--muted] font-normal ml-1">v3.5</span></h1>
+              <p class="text-xs text-[--muted]">Multi-Company Edition (NMSA & IPN)</p>
             </div>
           </div>
           
@@ -886,7 +873,7 @@
               </div>
               <div>
                 <h2 class="text-lg font-semibold">Form Pengajuan</h2>
-                <p class="text-sm text-[--muted]">Simpan ke Firebase → File otomatis ke Google Drive</p>
+                <p class="text-sm text-[--muted]" id="formSubtitle">Simpan ke Firebase → File otomatis ke Google Drive</p>
               </div>
             </div>
 
@@ -917,7 +904,7 @@
               <div class="grid md:grid-cols-2 gap-4">
                 <div>
                   <label class="field-label" for="no_invoice">No Invoice / Berkas</label>
-                  <input type="text" id="no_invoice" name="no_invoice" class="input-field mono" placeholder="(opsional)">
+                  <input type="text" id="no_invoice" name="no_invoice" class="input-field mono" placeholder="(opsional / auto-generate)">
                 </div>
                 <div>
                   <label class="field-label" for="status">Status Pembayaran<span class="required-star">*</span></label>
@@ -1068,6 +1055,19 @@
           </div>
         </div>
         
+        <div class="flex items-start gap-3">
+          <div class="step-number">2</div>
+          <div class="flex-1">
+            <h3 class="font-semibold text-base mb-2">📜 Apps Script URL (Opsional)</h3>
+            <p class="text-sm text-[--muted] mb-3">Untuk upload file ke Google Drive.</p>
+            
+            <label class="field-label mt-3">Apps Script Web App URL:</label>
+            <input type="url" id="appsScriptUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/..." style="font-family:'JetBrains Mono',monospace;font-size:11px;">
+            
+            <button onclick="saveAppsScriptUrlConfig()" class="copy-btn mt-3 w-full">💾 Simpan URL</button>
+          </div>
+        </div>
+        
         <button onclick="closeSetupModal()" class="copy-btn w-full">Tutup & Mulai Pakai</button>
       </div>
     </div>
@@ -1087,19 +1087,19 @@
       </div>
       
       <div class="login-companies-hint">
-        <div class="login-company-option" onclick="selectCompany('nmsa')">
+        <div class="login-company-option" id="companyOptNmsa" onclick="selectCompanyForLogin('nmsa')">
           <div class="login-company-icon">🏢</div>
-          <div class="login-company-name">NMSA<br><small style="opacity:0.6;font-size:10px;">Invoice-NMSA</small></div>
+          <div class="login-company-name">NMSA<br><small style="opacity:0.6;font-size:10px;">PT Nusantara Mineral Sukses Abadi</small></div>
         </div>
-        <div class="login-company-option" onclick="selectCompany('ipn')">
+        <div class="login-company-option" id="companyOptIpn" onclick="selectCompanyForLogin('ipn')">
           <div class="login-company-icon">🏭</div>
-          <div class="login-company-name">IPN<br><small style="opacity:0.6;font-size:10px;">Invoice-IPN</small></div>
+          <div class="login-company-name">IPN<br><small style="opacity:0.6;font-size:10px;">PT Industri Padi Nusantara</small></div>
         </div>
       </div>
       
       <div class="login-form-group">
         <label class="login-form-label">Email Address</label>
-        <input type="email" id="loginEmail" class="login-input" placeholder="admin@nmsa.com">
+        <input type="email" id="loginEmail" class="login-input" placeholder="admin@nmsa.com atau admin-ipn@gmail.com">
       </div>
       
       <div class="login-form-group">
@@ -1134,559 +1134,679 @@
   <div id="toast" class="toast"></div>
 
   <!-- ══════════════════════════════════════════════════════════════════════════ -->
-  <!-- JAVASCRIPT - COMPLETE & FIXED                          -->
+  <!-- JAVASCRIPT - LOAD EXTERNAL FILES FIRST, THEN INITIALIZATION         -->
   <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  
+  <!-- Load order matters! Config first, then utils, then firebase, then db, then drive, then app -->
+  <script src="config.js"></script>
+  <script src="utils.js"></script>
+  <script src="firebase-init.js"></script>
+  <script src="firestore-db.js"></script>
+  <script src="drive-sync.js"></script>
+  <script src="app.js"></script>
+  
+  <!-- Main initialization script for this page -->
   <script>
     // ============================================
-    // CONFIGURATION
+    // PAGE-SPECIFIC CODE (index.html)
+    // This handles UI interactions specific to this page
     // ============================================
-    const CONFIG_KEYS = {
-      FIREBASE_CONFIG: 'firebase_config',
-      APPS_SCRIPT_URL: 'apps_script_url',
-      SELECTED_COMPANY: 'selected_company'
-    };
-
-    const COMPANIES = {
+    
+    // Global variables for this page
+    let itemCount = 0;
+    let selectedCompanyForLogin = null;
+    
+    // ---- COMPANY CONFIG FOR THIS PAGE ----
+    const COMPANIES_PAGE = {
       nmsa: { id: 'nmsa', name: 'NMSA', collection: 'Invoice-NMSA', color: '#2563eb' },
       ipn: { id: 'ipn', name: 'IPN', collection: 'Invoice-IPN', color: '#dc2626' }
     };
-
-    // Global State
-    window.state = {
-      firebaseApp: null,
-      db: null,
-      auth: null,
-      currentUser: null,
-      selectedCompany: null,
-      selectedFiles: [],
-      items: [],
-      historyData: [],
-      isConnected: false,
-      unsubscribeListener: null
-    };
-
-    // ============================================
-    // UTILITIES
-    // ============================================
-    const Utils = {
-      formatCurrency: (amount) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0),
-      formatDate: (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) : '-',
-      formatDateFull: (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) : '-',
-      validateEmail: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-      formatFileSize: (bytes) => { if (!bytes) return '0 Bytes'; const k=1024,s=['Bytes','KB','MB','GB'],i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+s[i]; },
-      getFileIcon: (filename) => { const e=filename.split('.').pop().toLowerCase(),i={pdf:{icon:'📄',class:'pdf'},jpg:{icon:'🖼️',class:'image'},jpeg:{icon:'🖼️',class:'image'},png:{icon:'🖼️',class:'image'},gif:{icon:'🖼️',class:'image'},webp:{icon:'🖼️',class:'image'},doc:{icon:'📝',class:'doc'},docx:{icon:'📝',class:'doc'},xls:{icon:'📊',class:'doc'},xlsx:{icon:'📊',class:'doc'},ppt:{icon:'📽️',class:'doc'},pptx:{icon:'📽️',class:'doc'}}; return i[e]||{icon:'📎',class:'default'}; },
-      showToast: (msg, type='info') => { const t=document.getElementById('toast'); if(!t)return; const c={success:'border-l-4 border-green-500 bg-green-900/20',error:'border-l-4 border-red-500 bg-red-900/20',warning:'border-l-4 border-yellow-500 bg-yellow-900/20',info:'border-l-4 border-blue-500 bg-blue-900/20'}; t.className=`toast show ${c[type]||c.info}`; t.innerHTML=msg; setTimeout(()=>t.classList.remove('show'),3000); },
-      parseFirebaseConfig: (str) => { try { const c=JSON.parse(str); if(!c.apiKey||!c.projectId) throw new Error('Invalid config'); return c; } catch(e) { throw new Error('Invalid JSON format'); } }
-    };
-
-    // ============================================
-    // FIREBASE INITIALIZATION
-    // ============================================
-    async function initializeFirebase() {
-      try {
-        updateStatus('connecting', 'Connecting...');
-        
-        const configStr = localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG);
-        if (!configStr) {
-          updateStatus('error', 'Not configured');
-          showLoginModal();
-          return false;
-        }
-
-        const config = Utils.parseFirebaseConfig(configStr);
-        
-        if (!firebase.apps.length) window.state.firebaseApp = firebase.initializeApp(config);
-        else window.state.firebaseApp = firebase.app();
-
-        window.state.db = firebase.firestore();
-        window.state.auth = firebase.auth(); // ⭐ CRITICAL
-        
-        setupAuthListener();
-        updateStatus('connected', '✅ Connected');
-        window.state.isConnected = true;
-
-        console.log('✅ Firebase initialized');
-        return true;
-      } catch (error) {
-        console.error('❌ Init error:', error);
-        updateStatus('error', 'Failed: '+error.message);
-        window.state.auth = null; // Explicit null
-        window.state.isConnected = false;
-        showLoginModal();
-        return false;
-      }
-    }
-
+    
+    // ---- STATUS UPDATE ----
     function updateStatus(status, msg) {
-      const dot=document.getElementById('statusDot'), text=document.getElementById('statusText');
-      if(dot) dot.className='status-dot '+status;
-      if(text) text.textContent=msg;
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      if(dot) dot.className = 'status-dot ' + status;
+      if(text) text.textContent = msg;
     }
-
-    function setupAuthListener() {
-      if(!window.state.auth) return;
-      window.state.auth.onAuthStateChanged(user => {
-        console.log('🔐 Auth state:', user ? user.email : 'logged out');
-        if(user) {
-          window.state.currentUser=user;
-          updateAuthUI(true);
-          const saved=localStorage.getItem(CONFIG_KEYS.SELECTED_COMPANY);
-          if(saved&&COMPANIES[savedCompany]) { selectCompany(saved); startDataListener(); }
-          else showLoginModal();
-        } else {
-          window.state.currentUser=null;
-          updateAuthUI(false);
-          showLoginModal();
-        }
-      });
-    }
-
-    // ============================================
-    // DATABASE OPERATIONS
-    // ============================================
-    const DB = {
-      getCollection: () => window.state.selectedCompany ? COMPANIES[window.state.selectedCompany].collection : 'Invoice-NMSA',
-
-      addData: async (data) => {
-        try {
-          const ref=await window.state.db.collection(DB.getCollection()).add({
-            ...data,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            createdBy: window.state.currentUser?.email||'anonymous',
-            companyId: window.state.selectedCompany||'nmsa'
-          });
-          Utils.showToast('✅ Data saved!', 'success');
-          return ref.id;
-        } catch(e) { Utils.showToast('Save failed: '+e.message,'error'); throw e; }
-      },
-
-      listen: (cb) => {
-        try {
-          if(window.state.unsubscribeListener) window.state.unsubscribeListener();
-          window.state.unsubscribeListener=window.state.db.collection(DB.getCollection())
-            .orderBy('createdAt','desc')
-            .onSnapshot(snap=>{
-              const data=[];
-              snap.forEach(doc=>data.push({id:doc.id,...doc.data()}));
-              cb(data);
-              updateStats(data);
-            },err=>console.error('Listener error:',err));
-        } catch(e) { console.error('Setup listener error:',e); }
-      }
-    };
-
-    // ============================================
-    // MAIN APP
-    // ============================================
-    let itemCount=0;
-
-    document.addEventListener('DOMContentLoaded', async()=>{
-      console.log('🚀 FinanceSync Pro v3.4 starting...');
-      await initializeFirebase();
-      initForm();
-      addItem();
-      document.getElementById('tanggal').valueAsDate=new Date();
-      setInterval(updateLoginButton,500);
-    });
-
-    function initForm() {
-      const f=document.getElementById('dataForm');
-      if(f) f.addEventListener('submit', handleSubmit);
-    }
-
-    function updateLoginButton() {
-      const warning=document.getElementById('firebaseWarning'),
-            btn=document.getElementById('loginSubmitBtn');
-      if(warning&&btn) {
-        if(!window.state.auth||!window.state.isConnected) {
-          warning.style.display='block';
-          btn.disabled=true;
-          btn.textContent='⏳ Preparing...';
-        } else {
-          warning.style.display='none';
-          btn.disabled=false;
-          btn.textContent='Masuk ke Dashboard';
-        }
-      }
-    }
-
-    // Form Items
-    function addItem(d={}) {
+    
+    // ---- FORM ITEMS MANAGEMENT ----
+    function addFormItem(d = {}) {
       itemCount++;
       document.getElementById('itemsContainer').insertAdjacentHTML('beforeend',
         `<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="item-${itemCount}">
-          <div class="col-span-5"><input type="text" name="name_${itemCount}" class="input-field text-sm" placeholder="Nama barang/jasa" value="${d.name||''}" onchange="calcTotal()"></div>
-          <div class="col-span-2"><input type="number" name="qty_${itemCount}" class="input-field text-sm text-center" placeholder="Qty" value="${d.qty||1}" min="1" onchange="calcTotal()"></div>
-          <div class="col-span-3"><input type="number" name="price_${itemCount}" class="input-field text-sm font-mono" placeholder="Harga" value="${d.price||''}" min="0" onchange="calcTotal()"></div>
+          <div class="col-span-5"><input type="text" name="name_${itemCount}" class="input-field text-sm" placeholder="Nama barang/jasa" value="${d.ket || d.name || ''}" onchange="calcTotal()"></div>
+          <div class="col-span-2"><input type="number" name="qty_${itemCount}" class="input-field text-sm text-center" placeholder="Qty" value="${d.qty || 1}" min="1" onchange="calcTotal()"></div>
+          <div class="col-span-3"><input type="number" name="price_${itemCount}" class="input-field text-sm font-mono" placeholder="Harga" value="${d.price || d.nominal || ''}" min="0" onchange="calcTotal()"></div>
           <div class="col-span-2 flex items-center justify-end">
             <span class="text-sm font-mono text-[--muted] item-total" id="total-${itemCount}">Rp 0</span>
-            ${itemCount>1?`<button type="button" onclick="removeItem(${itemCount})" class="ml-2 w-6 h-6 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs">×</button>`:''}
+            ${itemCount > 1 ? `<button type="button" onclick="removeItem(${itemCount})" class="ml-2 w-6 h-6 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 text-xs">×</button>` : ''}
           </div></div>`
       );
-      window.state.items.push({id:itemCount,...d});
     }
-
+    
+    window.addFormItem = addFormItem;
+    
     function removeItem(id) {
-      const el=document.getElementById(`item-${id}`);
-      if(el){el.remove();window.state.items=window.state.items.filter(i=>i.id!==id); calcTotal();}
+      const el = document.getElementById(`item-${id}`);
+      if(el) {
+        el.remove();
+        calcTotal();
+      }
     }
-
+    
+    window.removeItem = removeItem;
+    
     function calcTotal() {
-      let total=0;
-      document.querySelectorAll('.item-row').forEach(row=>{
-        const qty=parseFloat(row.querySelector('[name^="qty_"]')?.value)||0,
-              price=parseFloat(row.querySelector('[name^="price_"]')?.value)||0;
-        total+=qty*price;
-        const el=row.querySelector('.item-total');
-        if(el) el.textContent=Utils.formatCurrency(qty*price);
+      let total = 0;
+      document.querySelectorAll('.item-row').forEach(row => {
+        const qty = parseFloat(row.querySelector('[name^="qty_"]')?.value) || 0;
+        const price = parseFloat(row.querySelector('[name^="price_"]')?.value) || 0;
+        total += qty * price;
+        const el = row.querySelector('.item-total');
+        if(el) el.textContent = formatCurrency(qty * price);
       });
-      const d=document.getElementById('grandTotalDisplay');
-      if(d) d.value=Utils.formatCurrency(total);
+      const d = document.getElementById('grandTotalDisplay');
+      if(d) d.value = formatCurrency(total);
       return total;
     }
-
-    async function handleSubmit(e) {
-      e.preventDefault();
-      if(!validate()) return;
-
-      const btn=document.querySelector('#dataForm button[type="submit"]');
-      btn.innerHTML='<span class="spinner"></span> Saving...';
-      btn.disabled=true;
-
-      try {
-        await DB.addData(collectData());
-        resetForm();
-        Utils.showToast('✅ Saved!','success');
-      } catch(err) {
-        Utils.showToast('Error: '+err.message,'error');
-      }
-
-      btn.innerHTML='💾 Simpan ke Firebase';
-      btn.disabled=false;
+    
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0);
     }
-
-    function validate() {
-      const fields=[
-        {id:'tanggal',l:'Tanggal'},
-        {id:'lokasi',l:'Lokasi'},
-        {id:'jenis_pengajuan',l:'Jenis'},
-        {id:'kode',l:'Kode'},
-        {id:'status',l:'Status'},
-        {id:'dibayarkan_kepada',l:'Dibayarkan kepada'}
-      ];
-      const errors=fields.filter(f=>!document.getElementById(f.id)?.value.trim()).map(f=>f.l);
-
-      let hasItem=false;
-      document.querySelectorAll('.item-row').forEach(r=>{
-        if(r.querySelector('[name^="name_"]')?.value.trim()) hasItem=true;
-      });
-      if(!hasItem) errors.push('Minimal 1 item');
-
-      if(errors.length){
-        Utils.showToast('Required: '+errors.join(', '),'error');
-        return false;
-      }
-      return true;
-    }
-
-    function collectData() {
-      const items=[];
-      document.querySelectorAll('.item-row').forEach(row=>{
-        const n=row.querySelector('[name^="name_"]')?.value||'',
-              q=parseFloat(row.querySelector('[name^="qty_"]')||0,
-              p=parseFloat(row.querySelector('[name^="price_"]')||0;
-        if(n&&q>0&&p>0) items.push({name:n,qty:q,price:p,total:q*p});
-      });
-
-      return{
-        tanggal:document.getElementById('tanggal').value,
-        lokasi:document.getElementById('lokasi').value,
-        jenis_pengajuan:document.getElementById('jenis_pengajuan').value,
-        kode:document.getElementById('kode').value,
-        no_invoice:document.getElementById('no_invoice').value,
-        status:document.getElementById('status').value,
-        dibayarkan_kepada:document.getElementById('dibayarkan_kepada').value,
-        tanggal_pembayaran:document.getElementById('tanggal_pembayaran').value,
-        catatan_tambahan:document.getElementById('catatan_tambahan').value,
-        items,
-        grandTotal:calcTotal(),
-        files:window.state.selectedFiles.map(f=>({name:f.name,size:f.size,type:f.type}))
-      };
-    }
-
-    function resetForm() {
-      document.getElementById('dataForm').reset();
-      clearFiles();
-      window.state.items=[];
-      document.getElementById('itemsContainer').innerHTML='';
-      addItem();
-      document.getElementById('tanggal').valueAsDate=new Date();
-      calcTotal();
-    }
-
-    // File Handling
-    window.handleFileSelect=function(input){
-      Array.from(input.files).forEach(file=>{
-        if(file.size<=30*1024*1024) window.state.selectedFiles.push(file);
-        else Utils.showToast(file.name+' exceeds 30MB','error');
+    
+    // ---- FILE HANDLING ----
+    window.handleFileSelect = function(input) {
+      if(!input.files || input.files.length === 0) return;
+      
+      Array.from(input.files).forEach(file => {
+        if(file.size <= 30 * 1024 * 1024) {
+          state.selectedFiles.push(file);
+        } else {
+          showToast(file.name + ' melebihi 30MB!', 'error');
+        }
       });
       renderFiles();
     };
-
-    window.handleExternalFiles=function(files){
-      Array.from(files).forEach(file=>{
-        if(file.size<=30*1024*1024) window.state.selectedFiles.push(file);
+    
+    window.handleExternalFiles = function(files) {
+      if(!files || files.length === 0) return;
+      Array.from(files).forEach(file => {
+        if(file.size <= 30 * 1024 * 1024) state.selectedFiles.push(file);
       });
       renderFiles();
     };
-
-    function renderFiles(){
-      const c=document.getElementById('fileListDisplay'),
-            a=document.getElementById('selectedFilesActions'),
-            cnt=document.getElementById('selectedFilesCount'),
-            p=document.getElementById('uploadPlaceholder');
+    
+    function renderFiles() {
+      const c = document.getElementById('fileListDisplay');
+      const a = document.getElementById('selectedFilesActions');
+      const cnt = document.getElementById('selectedFilesCount');
+      const p = document.getElementById('uploadPlaceholder');
+      
       if(!c) return;
-
-      if(window.state.selectedFiles.length===0){
-        c.innerHTML='';
-        if(a) a.style.display='none';
-        if(p) p.style.display='block';
+      
+      if(state.selectedFiles.length === 0) {
+        c.innerHTML = '';
+        if(a) a.style.display = 'none';
+        if(p) p.style.display = 'block';
         return;
       }
-
-      if(p) p.style.display='none';
-      if(a) a.style.display='flex';
-      if(cnt) cnt.textContent=window.state.selectedFiles.length+' file dipilih';
-
-      c.innerHTML=window.state.selectedFiles.map((f,i)=>{
-        const info=Utils.getFileIcon(f.name);
+      
+      if(p) p.style.display = 'none';
+      if(a) a.style.display = 'flex';
+      if(cnt) cnt.textContent = state.selectedFiles.length + ' file dipilih';
+      
+      c.innerHTML = state.selectedFiles.map((f, i) => {
+        const info = getFileTypeInfo(f.name);
         return `<div class="file-item-card">
-          <div class="file-item-icon ${info.class}">${info.icon}</div>
+          <div class="file-item-icon ${info.category}">${info.icon}</div>
           <div class="file-item-info">
-            <div class="file-item-name">${f.name}</div>
-            <div class="file-item-size">${Utils.formatFileSize(f.size)}</div>
+            <div class="file-item-name">${escapeHtml(f.name)}</div>
+            <div class="file-item-size">${formatFileSize(f.size)}</div>
           </div>
-          <button onclick="removeFile(${i})" class="file-item-remove">×</button>
+          <button onclick="removeFileAtIndex(${i})" class="file-item-remove">×</button>
         </div>`;
       }).join('');
     }
-
-    window.removeFile=(i)=>{ window.state.selectedFiles.splice(i,1); renderFiles(); };
-    window.clearFiles=()=>{ window.state.selectedFiles=[]; const fi=document.getElementById('fileInput'); if(fi) fi.value=''; renderFiles(); };
-    window.resetUploadArea=()=>{ clearFiles(); };
-
+    
+    window.removeFileAtIndex = function(i) {
+      state.selectedFiles.splice(i, 1);
+      renderFiles();
+    };
+    
+    window.clearSelectedFiles = function() {
+      state.selectedFiles = [];
+      const fi = document.getElementById('fileInput');
+      if(fi) fi.value = '';
+      renderFiles();
+    };
+    
+    window.resetUploadArea = function() {
+      clearSelectedFiles();
+    };
+    
     // Drag & Drop
-    window.handleDragOver=(e)=>{ e.preventDefault(); const a=document.getElementById('uploadArea'); if(a) a.classList.add('drag-over'); };
-    window.handleDragLeave=(e)=>{ e.preventDefault(); const a=document.getElementById('uploadArea'); if(a) a.classList.remove('drag-over'); };
-    window.handleDrop=(e)=>{
+    window.handleDragOver = function(e) {
       e.preventDefault();
-      const a=document.getElementById('uploadArea');
+      const a = document.getElementById('uploadArea');
+      if(a) a.classList.add('drag-over');
+    };
+    
+    window.handleDragLeave = function(e) {
+      e.preventDefault();
+      const a = document.getElementById('uploadArea');
       if(a) a.classList.remove('drag-over');
-      if(e.dataTransfer?.files?.length>0) handleExternalFiles(e.dataTransfer.files);
     };
-
-    // Auth Functions
-    function showLoginModal(){ const m=document.getElementById('loginModal'); if(m) m.classList.remove('hidden'); }
-    window.hideLoginModal=()=>{ const m=document.getElementById('loginModal'); if(m) m.classList.add('hidden'); };
-
-    window.selectCompany=(companyId)=>{
-      document.querySelectorAll('.login-company-option').forEach(el=>el.classList.remove('selected'));
-      const sel=document.querySelector(`.login-company-option:nth-child(${companyId==='nmsa'?1:2})`);
-      if(sel) sel.classList.add('selected');
-      window.state.selectedCompany=companyId;
-      localStorage.setItem(CONFIG_KEYS.SELECTED_COMPANY,companyId);
+    
+    window.handleDrop = function(e) {
+      e.preventDefault();
+      const a = document.getElementById('uploadArea');
+      if(a) a.classList.remove('drag-over');
+      if(e.dataTransfer?.files?.length > 0) handleExternalFiles(e.dataTransfer.files);
     };
-
-    window.handleLoginForm=async()=>{
-      const email=document.getElementById('loginEmail')?.value,
-            pwd=document.getElementById('loginPassword')?.value,
-            errDiv=document.getElementById('loginError');
-
-      if(errDiv){ errDiv.classList.remove('show'); errDiv.textContent=''; }
-      if(!email||!pwd) return showError('Email & password required');
-      if(!Utils.validateEmail(email)) return showError('Invalid email');
-      if(!window.state.selectedCompany) return showError('Select company first');
-
-      // 🔒 SAFETY CHECK
-      if(!window.state.auth){
-        console.error('❌ Auth is NULL! Retrying...');
-        showError('Firebase not ready. Click Setup.');
+    
+    // ---- LOGIN MODAL FUNCTIONS ----
+    window.showLoginModal = function() {
+      const m = document.getElementById('loginModal');
+      if(m) m.classList.remove('hidden');
+    };
+    
+    window.hideLoginModal = function() {
+      const m = document.getElementById('loginModal');
+      if(m) m.classList.add('hidden');
+    };
+    
+    window.selectCompanyForLogin = function(companyId) {
+      selectedCompanyForLogin = companyId;
+      
+      // Update UI selection
+      document.querySelectorAll('.login-company-option').forEach(el => el.classList.remove('selected'));
+      const selEl = document.getElementById(companyId === 'nmsa' ? 'companyOptNmsa' : 'companyOptIpn');
+      if(selEl) selEl.classList.add('selected');
+      
+      console.log('[Login] Company selected:', companyId);
+    };
+    
+    window.handleLoginForm = async function() {
+      const email = document.getElementById('loginEmail')?.value;
+      const pwd = document.getElementById('loginPassword')?.value;
+      const errDiv = document.getElementById('loginError');
+      const btn = document.getElementById('loginSubmitBtn');
+      
+      if(errDiv) { errDiv.classList.remove('show'); errDiv.textContent = ''; }
+      
+      if(!email || !pwd) return showLoginError('Email & password wajib diisi!');
+      if(!validateEmail(email)) return showLoginError('Format email tidak valid!');
+      if(!selectedCompanyForLogin) return showLoginError('Pilih perusahaan terlebih dahulu!');
+      
+      // Set company before login
+      setCurrentCompany(selectedCompanyForLogin);
+      
+      if(btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Logging in...';
+      }
+      
+      try {
+        // Call loginUser from firebase-init.js
+        const result = await loginUser(email, pwd);
         
-        const ok=await initializeFirebase();
-        if(!ok||!window.state.auth) return showError('Cannot connect. Check Setup.');
-      }
-
-      const btn=document.getElementById('loginSubmitBtn');
-      if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Logging in...'; }
-
-      try{
-        console.log('🔐 Signing in...', email);
-        await window.state.auth.signInWithEmailAndPassword(email,pwd);
-        hideLoginModal();
-        updateAuthUI(true);
-        startDataListener();
-        Utils.showToast(`Welcome! (${COMPANIES[window.state.selectedCompany].name})`,'success');
-      }catch(e){
-        console.error('❌ Login error:',e);
-        let msg='Login failed';
-        switch(e.code){
-          case 'auth/user-not-found': msg='Account not found'; break;
-          case 'auth/wrong-password': msg='Wrong password'; break;
-          case 'auth/invalid-email': msg='Invalid email'; break;
-          case 'auth/too-many-requests': msg='Too many attempts. Wait 1-2 minutes.'; break;
-          default: msg=e.message||'Unknown error';
+        if(result.success) {
+          hideLoginModal();
+          updateAuthUI(true);
+          
+          // Update subtitle with company name
+          const sub = document.getElementById('formSubtitle');
+          if(sub && getCurrentCompanyConfig()) {
+            sub.textContent = `Simpan ke ${getCurrentCompanyConfig().displayName} → Firebase`;
+          }
+          
+          // Start listening for this company's data
+          applyDateFilter();
+          
+          showToast(`Selamat datang! (${result.companyName})`, 'success');
+        } else {
+          showLoginError(result.error || 'Login gagal');
         }
-        showError(msg);
-      }finally{
-        if(btn){ btn.disabled=false; btn.innerHTML='Masuk ke Dashboard'; }
+      } catch(e) {
+        console.error('[Login Error]:', e);
+        showLoginError(e.message || 'Terjadi kesalahan');
+      } finally {
+        if(btn) {
+          btn.disabled = false;
+          btn.innerHTML = 'Masuk ke Dashboard';
+        }
+      }
     };
-
-    function showError(msg){
-      const d=document.getElementById('loginError');
-      if(d){ d.textContent=msg; d.classList.add('show'); }
+    
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
-
-    window.handleLogout=async()=>{
-      try{
-        await window.state.auth.signOut();
-        window.state.currentUser=null;
-        if(window.state.unsubscribeListener) window.state.unsubscribeListener();
-        updateAuthUI(false);
-        renderHistory([]);
-        Utils.showToast('Logged out','info');
+    
+    function showLoginError(msg) {
+      const d = document.getElementById('loginError');
+      if(d) {
+        d.textContent = msg;
+        d.classList.add('show');
+      }
+    }
+    
+    window.handleLogout = async function() {
+      try {
+        await logoutUser();
+        renderHistory([], 'Lunas');
+        showToast('Berhasil logout!', 'info');
         showLoginModal();
-      }catch(e){ Utils.showToast('Logout error: '+e.message,'error'); }
+      } catch(e) {
+        showToast('Logout error: ' + e.message, 'error');
+      }
     };
-
-    function updateAuthUI(loggedIn){
-      const loginBtn=document.getElementById('loginBtn'),
-            logoutBtn=document.getElementById('logoutBtn'),
-            badge=document.getElementById('companyBadge'),
-            userInfo=document.getElementById('userInfo'),
-            nameEl=document.getElementById('companyNameDisplay'),
-            userEl=document.getElementById('userNameDisplay');
-
-      if(loggedIn){
-        if(loginBtn) loginBtn.style.display='none';
-        if(logoutBtn) logoutBtn.style.display='inline-flex';
-        if(badge) badge.style.display='inline-flex';
-        if(userInfo) userInfo.style.display='inline-flex';
-        if(nameEl&&window.state.selectedCompany){
-          nameEl.textContent=COMPANIES[window.state.selectedCompany].name;
-          badge.className='company-badge '+window.state.selectedCompany;
+    
+    function updateAuthUI(loggedIn) {
+      const loginBtn = document.getElementById('loginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const badge = document.getElementById('companyBadge');
+      const userInfo = document.getElementById('userInfo');
+      
+      if(loggedIn) {
+        if(loginBtn) loginBtn.style.display = 'none';
+        if(logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if(badge) {
+          badge.style.display = 'inline-flex';
+          const cfg = getCurrentCompanyConfig();
+          if(cfg) {
+            badge.className = 'company-badge ' + cfg.id;
+            badge.querySelector('.company-name').textContent = cfg.displayName;
+          }
         }
-        if(userEl&&window.state.currentUser) userEl.textContent=window.state.currentUser.email;
-      }else{
-        if(loginBtn) loginBtn.style.display='inline-flex';
-        if(logoutBtn) logoutBtn.style.display='none';
-        if(badge) badge.style.display='none';
-        if(userInfo) userInfo.style.display='none';
+        if(userInfo) {
+          userInfo.style.display = 'inline-flex';
+          const user = getCurrentUser();
+          userInfo.querySelector('.user-name').textContent = user?.email || user?.displayName || '-';
+        }
+      } else {
+        if(loginBtn) loginBtn.style.display = 'inline-flex';
+        if(logoutBtn) logoutBtn.style.display = 'none';
+        if(badge) badge.style.display = 'none';
+        if(userInfo) userInfo.style.display = 'none';
       }
     }
-
-    // Data Listener & History
-    function startDataListener(){ DB.listen(data=>{ window.state.historyData=data; renderHistory(data); }); }
-
-    function renderHistory(data, filter='Lunas'){
-      const c=document.getElementById('historyList');
+    
+    // ---- HISTORY RENDERING ----
+    function renderHistory(data, filter) {
+      const c = document.getElementById('historyList');
       if(!c) return;
-
-      const filtered=data.filter(item=>item.status===filter);
-      if(!filtered.length){
-        c.innerHTML=`<div class="text-center py-10 text-[--muted]"><div class="text-5xl mb-3">📋</div><p class="text-sm">No ${filter.toLowerCase()} data</p></div>`;
+      
+      filter = filter || state.currentTab || 'Lunas';
+      
+      if(!data || data.length === 0) {
+        c.innerHTML = `<div class="text-center py-10 text-[--muted]"><div class="text-5xl mb-3">📋</div><p class="text-sm">No ${filter.toLowerCase()} data</p></div>`;
         return;
       }
-
-      c.innerHTML=filtered.map(item=>`
+      
+      const filtered = data.filter(item => item.status === filter);
+      
+      if(filtered.length === 0) {
+        c.innerHTML = `<div class="text-center py-10 text-[--muted]"><div class="text-5xl mb-3">📋</div><p class="text-sm">No ${filter.toLowerCase()} data</p></div>`;
+        return;
+      }
+      
+      c.innerHTML = filtered.map(item => `
         <div class="history-item" onclick="viewDetail('${item.id}')">
           <div class="flex justify-between items-start mb-2">
-            <div><div class="font-semibold text-sm">${item.kode||'-'}</div><div class="text-xs text-[--muted]">${item.jenis_pengajuan||'-'}</div></div>
-            <div class="text-right"><div class="font-bold text-sm text-[--drive]">${Utils.formatCurrency(item.grandTotal)}</div><div class="text-xs text-[--muted]">${Utils.formatDate(item.tanggal)}</div></div>
+            <div>
+              <div class="font-semibold text-sm">${item.kode || '-'}</div>
+              <div class="text-xs text-[--muted]">${item.jenis_pengajuan || '-'}</div>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-sm text-[--drive]">${formatCurrency(item.total_nominal || item.grandTotal || 0)}</div>
+              <div class="text-xs text-[--muted]">${formatDate(item.tanggal)}</div>
+            </div>
           </div>
           <div class="flex items-center gap-2 mt-2">
-            <span class="px-2 py-1 rounded text-xs ${item.status==='Lunas'?'bg-green-500/20 text-green-400':'bg-yellow-500/20 text-yellow-400'}">${item.status}</span>
+            <span class="px-2 py-1 rounded text-xs ${item.status === 'Lunas' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${item.status}</span>
           </div>
         </div>
       `).join('');
     }
-
-    window.filterByStatus=(status,btn)=>{
-      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-      if(btn) btn.classList.add('active');
-      renderHistory(window.state.historyData,status);
-    };
-
-    function viewDetail(id){
-      const item=window.state.historyData.find(d=>d.id===id);
-      if(item) Utils.showToast('Viewing: '+item.kode,'info');
-    }
-
-    function updateStats(data){
-      const el=id=>document.getElementById(id);
-      if(el('totalData')) el('totalData').textContent=data.length;
-      if(el('sentData')) el('sentData').textContent=data.length;
-      if(el('sheetsData')) el('sheetsData').textContent=data.length;
-      if(el('pendingData')) el('pendingData').textContent=data.filter(d=>d.status==='Belum Lunas').length;
-    }
-
-    // Setup Modal
-    window.openSetupModal=()=>{
-      const m=document.getElementById('setupModal');
-      if(m){ m.classList.remove('hidden'); const i=document.getElementById('firebaseConfigInput'); if(i) i.value=localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG)||''; }
-    };
-
-    window.closeSetupModal=()=>{ const m=document.getElementById('setupModal'); if(m) m.classList.add('hidden'); };
-
-    window.saveFirebaseConfig=()=>{
-      const i=document.getElementById('firebaseConfigInput'), e=document.getElementById('configError');
-      if(!i) return;
-      try{
-        const c=Utils.parseFirebaseConfig(i.value.trim());
-        localStorage.setItem(CONFIG_KEYS.FIREBASE_CONFIG,i.value.trim());
-        initializeFirebase().then(ok=>{
-          if(ok){ Utils.showToast('✅ Config saved!','success'); closeSetupModal(); }
-        });
-      }catch(x){
-        if(e){ e.textContent=x.message; e.classList.remove('hidden'); }
-        Utils.showToast(x.message,'error');
-      }
-    };
-
-    // Document Preview
-    window.previewDocument=()=>{
-      const d=collectData();
-      if(!d.kode) return Utils.showToast('Fill form first','warning');
-      const m=document.getElementById('documentModal'),c=document.getElementById('documentContent');
-      if(m&&c){ c.parentElement.innerHTML=generateDoc(d); m.classList.remove('hidden'); }
-    };
-
-    function generateDoc(d){
-      const rows=d.items.map((it,i)=>`<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td style="text-align:right">${Utils.formatCurrency(it.total)}</td><td>-</td></tr>`).join('');
-      return `<div class="document-page"><div class="doc-header-center"><div class="doc-form-title">FORMULIR PENGAJUAN HO</div></div><div class="doc-info-grid"><div class="doc-info-item"><span class="doc-info-label">Lokasi</span><span>${d.lokasi||'-'}</span></div><div class="doc-info-item"><span class="doc-info-label">Tanggal</span><span>${Utils.formatDateFull(d.tanggal)}</span></div><div class="doc-info-item"><span class="doc-info-label">Kode</span><span>${d.kode||'-'}</span></div><div class="doc-info-item"><span class="doc-info-label">Jenis</span><span>${d.jenis_pengajuan||'-'}</span></div></div><table class="doc-table"><thead><tr><th>No</th><th>Item</th><th>Qty</th><th>Total (Rp)</th><th>Ket</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="doc-total-row"><td colspan="3" style="text-align:right">GRAND TOTAL</td><td style="text-align:right">${Utils.formatCurrency(d.grandTotal)}</td><td></td></tfoot></table><div class="doc-signatures-p1"><div class="doc-sig-box"><div class="doc-sig-label">DIBUAT OLEH</div><div class="doc-sig-space"></div><div class="doc-sig-name">${window.state.currentUser?.email||'-'}</div></div><div class="doc-sig-box"><div class="doc-sig-label">DISETUJUI</div><div class="doc-sig-space"></div><div class="doc-sig-name">-</div></div></div></div>`;
-    }
-
-    window.closeDocumentModal=()=>{ const m=document.getElementById('documentModal'); if(m) m.classList.add('hidden'); };
     
-    window.downloadAsPDF=()=>{
-      const el=document.querySelector('.documents-container');
-      if(!el) return;
-      Utils.showToast('Generating PDF...','info');
-      html2pdf().set({margin:10,filename:`Invoice-${document.getElementById('kode')?.value||'document'}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).save().then(()=>Utils.showToast('✅ PDF downloaded!','success')).catch(err=>{console.error(err); Utils.showToast('PDF failed','error');});
+    // Override global renderHistory to work with page-specific version
+    window.renderHistory = renderHistory;
+    
+    window.filterByStatus = function(status, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      state.currentTab = status;
+      renderHistory(state.history, status);
     };
-
-    // Clear History
-    document.getElementById('clearHistory').onclick=()=>{
-      if(confirm('Reset history?')){
-        window.state.historyData=[];
-        renderHistory([]);
-        Utils.showToast('History reset','info');
+    
+    function viewDetail(id) {
+      const item = state.history.find(d => d.id === id);
+      if(item) showToast('Viewing: ' + (item.kode || item.id), 'info');
+    }
+    
+    function updateStatsDisplay(data) {
+      if(!data) data = state.history || [];
+      const el = id => document.getElementById(id);
+      if(el('totalData')) el('totalData').textContent = data.length;
+      if(el('sentData')) el('sentData').textContent = data.length;
+      if(el('sheetsData')) el('sheetsData').textContent = data.filter(d => d.google_drive_link || (d.files && d.files.some(f => (f.mapValue?.fields || f).driveUrl))).length;
+      if(el('pendingData')) el('pendingData').textContent = data.filter(d => d.status === 'Belum Lunas').length;
+    }
+    
+    // Override global updateStats
+    window.updateStats = updateStatsDisplay;
+    
+    // ---- DOCUMENT PREVIEW ----
+    window.previewDocument = function() {
+      // Collect basic data from form
+      const d = collectFormDataSimple();
+      if(!d.kode) return showToast('Isi form terlebih dahulu!', 'warning');
+      
+      const m = document.getElementById('documentModal');
+      const c = document.getElementById('documentContent');
+      if(m && c) {
+        c.innerHTML = generateDocHTML(d);
+        m.classList.remove('hidden');
       }
     };
-
-    // Console
-    console.log('%c🚀 FinanceSync Pro v3.4 - FIXED','color:#4285f4;font-size:16px;font-weight:bold;');
-    console.log('%c✅ All SVG errors fixed | Firebase robust','color:#22c55e;font-size:12px;');
+    
+    function collectFormDataSimple() {
+      const items = [];
+      document.querySelectorAll('.item-row').forEach(row => {
+        const n = row.querySelector('[name^="name_"]')?.value || '';
+        const q = parseFloat(row.querySelector('[name^="qty_"]')?.value) || 0;
+        const p = parseFloat(row.querySelector('[name^="price_"]')?.value) || 0;
+        if(n && q > 0 && p > 0) items.push({name: n, qty: q, price: p, total: q*p});
+      });
+      
+      return {
+        tanggal: document.getElementById('tanggal')?.value || '',
+        lokasi: document.getElementById('lokasi')?.value || '',
+        kode: document.getElementById('kode')?.value || '',
+        jenis_pengajuan: document.getElementById('jenis_pengajuan')?.value || '',
+        status: document.getElementById('status')?.value || '',
+        dibayarkan_kepada: document.getElementById('dibayarkan_kepada')?.value || '',
+        grandTotal: calcTotal(),
+        items: items
+      };
+    }
+    
+    function generateDocHTML(d) {
+      const rows = d.items.map((it, i) => 
+        `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty}</td><td style="text-align:right">${formatCurrency(it.total)}</td><td>-</td></tr>`
+      ).join('');
+      
+      return `<div class="document-page">
+        <div class="doc-header-center">
+          <div class="doc-form-title">FORMULIR PENGAJUAN HO</div>
+          ${getCurrentCompanyConfig() ? `<div style="margin-top:10px;font-weight:bold;color:#2563eb;">${getCurrentCompanyConfig().name}</div>` : ''}
+        </div>
+        <div class="doc-info-grid">
+          <div class="doc-info-item"><span class="doc-info-label">Lokasi</span><span>${d.lokasi || '-'}</span></div>
+          <div class="doc-info-item"><span class="doc-info-label">Tanggal</span><span>${formatDateFull(d.tanggal)}</span></div>
+          <div class="doc-info-item"><span class="doc-info-label">Kode</span><span>${d.kode || '-'}</span></div>
+          <div class="doc-info-item"><span class="doc-info-label">Jenis</span><span>${d.jenis_pengajuan || '-'}</span></div>
+        </div>
+        <table class="doc-table">
+          <thead><tr><th>No</th><th>Item</th><th>Qty</th><th>Total (Rp)</th><th>Ket</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr class="doc-total-row"><td colspan="3" style="text-align:right">GRAND TOTAL</td><td style="text-align:right">${formatCurrency(d.grandTotal)}</td><td></td></tr></tfoot>
+        </table>
+        <div class="doc-signatures-p1">
+          <div class="doc-sig-box">
+            <div class="doc-sig-label">DIBUAT OLEH</div>
+            <div class="doc-sig-space"></div>
+            <div class="doc-sig-name">${getCurrentUser()?.email || '-'}</div>
+          </div>
+          <div class="doc-sig-box">
+            <div class="doc-sig-label">DISETUJUI</div>
+            <div class="doc-sig-space"></div>
+            <div class="doc-sig-name">-</div>
+          </div>
+        </div>
+      </div>`;
+    }
+    
+    function formatDateFull(dateStr) {
+      if(!dateStr) return '-';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+      } catch(e) { return dateStr; }
+    }
+    
+    window.closeDocumentModal = function() {
+      const m = document.getElementById('documentModal');
+      if(m) m.classList.add('hidden');
+    };
+    
+    window.downloadAsPDF = function() {
+      const el = document.querySelector('.documents-container');
+      if(!el) return;
+      
+      showToast('Generating PDF...', 'info');
+      html2pdf().set({
+        margin: 10,
+        filename: `Invoice-${document.getElementById('kode')?.value || 'document'}_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: {type: 'jpeg', quality: 0.98},
+        html2canvas: {scale: 2},
+        jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
+      }).from(el).save().then(() => {
+        showToast('PDF downloaded!', 'success');
+      }).catch(err => {
+        console.error(err);
+        showToast('PDF failed', 'error');
+      });
+    };
+    
+    // ---- SETUP MODAL ----
+    window.openSetupModal = function() {
+      const m = document.getElementById('setupModal');
+      if(m) {
+        m.classList.remove('hidden');
+        const i = document.getElementById('firebaseConfigInput');
+        if(i) i.value = localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG) || '';
+        const u = document.getElementById('appsScriptUrlInput');
+        if(u) u.value = localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL) || '';
+      }
+    };
+    
+    window.closeSetupModal = function() {
+      const m = document.getElementById('setupModal');
+      if(m) m.classList.add('hidden');
+    };
+    
+    window.saveFirebaseConfig = async function() {
+      const i = document.getElementById('firebaseConfigInput');
+      const e = document.getElementById('configError');
+      
+      if(!i) return;
+      
+      try {
+        const config = JSON.parse(i.value.trim());
+        if(!config.apiKey || !config.projectId) throw new Error('Config tidak lengkap! Butuh apiKey & projectId.');
+        
+        localStorage.setItem(CONFIG_KEYS.FIREBASE_CONFIG, i.value.trim());
+        
+        // Re-initialize Firebase with new config
+        await initConnection();
+        
+        showToast('Config tersimpan & Firebase terhubung!', 'success');
+        closeSetupModal();
+      } catch(x) {
+        if(e) {
+          e.textContent = x.message;
+          e.classList.remove('hidden');
+        }
+        showToast(x.message, 'error');
+      }
+    };
+    
+    window.saveAppsScriptUrlConfig = function() {
+      const input = document.getElementById('appsScriptUrlInput');
+      if(!input) return;
+      
+      const url = input.value.trim();
+      if(!url) {
+        showToast('URL kosong!', 'warning');
+        return;
+      }
+      
+      if(!url.includes('script.google.com')) {
+        showToast('URL harus dari script.google.com!', 'error');
+        return;
+      }
+      
+      localStorage.setItem(CONFIG_KEYS.APPS_SCRIPT_URL, url);
+      state.appsScriptUrl = url;
+      
+      showToast('Apps Script URL disimpan!', 'success');
+    };
+    
+    // ---- CLEAR HISTORY ----
+    document.getElementById('clearHistory').onclick = function() {
+      if(confirm('Hapus SEMUA data dari Firebase? (Hanya data company ini)')) {
+        deleteAllSubmissions()
+          .then(() => showToast('Semua data dihapus', 'success'))
+          .catch(err => showToast('Error: ' + err.message, 'error'));
+      }
+    };
+    
+    // ---- FORM SUBMIT HANDLER ----
+    document.getElementById('dataForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Validation
+      if(!isLoggedIn()) {
+        showLoginModal();
+        showToast('Silakan login terlebih dahulu!', 'warning');
+        return;
+      }
+      
+      if(!getActiveCompanyId()) {
+        showToast('Tidak ada active company!', 'error');
+        return;
+      }
+      
+      // Basic validation
+      const required = ['tanggal', 'lokasi', 'jenis_pengajuan', 'kode', 'status', 'dibayarkan_kepada'];
+      const errors = required.filter(id => !document.getElementById(id)?.value.trim());
+      
+      let hasItem = false;
+      document.querySelectorAll('.item-row').forEach(r => {
+        if(r.querySelector('[name^="name_"]')?.value.trim()) hasItem = true;
+      });
+      if(!hasItem) errors.push('Minimal 1 item');
+      
+      if(errors.length > 0) {
+        showToast('Wajib isi: ' + errors.join(', '), 'error');
+        return;
+      }
+      
+      const btn = this.querySelector('button[type="submit"]');
+      btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+      btn.disabled = true;
+      
+      try {
+        // Collect form data using the standardized function
+        const formData = getFormData();
+        
+        // Save via smartSaveSubmission (handles both direct and via apps script)
+        let result;
+        if(state.selectedFiles && state.selectedFiles.length > 0 && isAppsScriptConfigured()) {
+          result = await smartSaveSubmission(formData, state.selectedFiles[0]);
+        } else {
+          result = await smartSaveSubmission(formData, null);
+        }
+        
+        if(result.success) {
+          showToast(result.message || 'Data tersimpan!', 'success');
+          
+          // Reset form
+          this.reset();
+          state.selectedFiles = [];
+          itemCount = 0;
+          document.getElementById('itemsContainer').innerHTML = '';
+          addFormItem();
+          document.getElementById('tanggal').valueAsDate = new Date();
+          calcTotal();
+          renderFiles();
+          
+          // Auto-generate new invoice number
+          if(isLoggedIn() && getActiveCompanyId()) {
+            autoGenerateInvoice().then(inv => {
+              if(inv) document.getElementById('no_invoice').value = inv;
+            });
+          }
+        } else {
+          throw new Error(result.error || 'Gagal menyimpan');
+        }
+      } catch(err) {
+        console.error('[Submit Error]:', err);
+        showToast('Error: ' + err.message, 'error');
+      } finally {
+        btn.innerHTML = '<span>💾 Simpan ke Firebase</span>';
+        btn.disabled = false;
+      }
+    });
+    
+    // Helper: getFormData for submit handler
+    function getFormData() {
+      const items = [];
+      document.querySelectorAll('.item-row').forEach(row => {
+        const n = row.querySelector('[name^="name_"]')?.value || '';
+        const q = parseFloat(row.querySelector('[name^="qty_"]')?.value) || 0;
+        const p = parseFloat(row.querySelector('[name^="price_"]')?.value) || 0;
+        if(n && q > 0 && p > 0) items.push({ket: n, qty: q.toString(), nominal: p, keterangan: ''});
+      });
+      
+      return {
+        tanggal: document.getElementById('tanggal')?.value || '',
+        lokasi: document.getElementById('lokasi')?.value || '',
+        jenis_pengajuan: document.getElementById('jenis_pengajuan')?.value || '',
+        kode: document.getElementById('kode')?.value || '',
+        no_invoice: document.getElementById('no_invoice')?.value || '',
+        status: document.getElementById('status')?.value || '',
+        dibayarkan_kepada: document.getElementById('dibayarkan_kepada')?.value || '',
+        tanggal_pembayaran: document.getElementById('tanggal_pembayaran')?.value || '',
+        catatan_tambahan: document.getElementById('catatan_tambahan')?.value || '',
+        items: items,
+        total_nominal: calcTotal()
+      };
+    }
+    
+    // ---- INITIALIZATION ON DOM READY ----
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log('🚀 FinanceSync Pro v3.5 starting...');
+      
+      // Initialize form
+      addItem();
+      document.getElementById('tanggal').valueAsDate = new Date();
+      
+      // Update login button state periodically
+      setInterval(() => {
+        const warning = document.getElementById('firebaseWarning');
+        const btn = document.getElementById('loginSubmitBtn');
+        if(warning && btn) {
+          if(!state.isConnected || !state.db) {
+            warning.style.display = 'block';
+            btn.disabled = true;
+            btn.textContent = '⏳ Preparing...';
+          } else {
+            warning.style.display = 'none';
+            btn.disabled = false;
+            btn.textContent = 'Masuk ke Dashboard';
+          }
+        }
+      }, 500);
+      
+      // The main init() from app.js will handle Firebase connection
+      // and call initConnection() which sets up everything
+    });
+    
+    console.log('%c🚀 FinanceSync Pro v3.5 - FIXED MULTI-COMPANY', 'color:#4285f4;font-size:16px;font-weight:bold;');
+    console.log('%c✅ Using external JS files | Collection: Invoice-NMSA / Invoice-IPN', 'color:#22c55e;font-size:12px;');
   </script>
 </body>
 </html>
