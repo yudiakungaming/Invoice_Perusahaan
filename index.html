@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
+    /* ── Background Effects (tidak ada di style.css) ── */
     .bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;
       background:radial-gradient(ellipse 600px 400px at 15% 20%,rgba(99,102,241,.07),transparent),
       radial-gradient(ellipse 500px 500px at 85% 80%,rgba(16,185,129,.05),transparent),
@@ -20,17 +21,29 @@
     .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;
       background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
       background-size:60px 60px}
+
+    /* ── Card Glow Variant ── */
     .card-glow{box-shadow:0 0 40px rgba(99,102,241,.06)}
+
+    /* ── Modal (tidak ada di style.css) ── */
     .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9000}
     .modal-bg.hidden{display:none!important}
     .modal-box{background:linear-gradient(145deg,var(--bg2),var(--bg));border:1px solid var(--border);border-radius:20px;padding:32px;max-width:700px;width:92%;max-height:88vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.6)}
     .modal-content{max-height:none;overflow:visible}
+
+    /* ── Spinner ── */
     .spinner{width:15px;height:15px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+
+    /* ── Document File Links (tidak ada di style.css) ── */
     .doc-file-box{margin-top:14px;padding:12px;background:#eff6ff;border-left:4px solid #3b82f6;border-radius:4px}
     .doc-file-h{font-weight:700;font-size:11px;color:#1e40af;margin-bottom:6px}
     .doc-file-link{font-size:11px;margin:3px 0;display:block}
     .doc-file-link a{color:#2563eb;text-decoration:underline}
+
+    /* ── Select Arrow Fix ── */
     select.input-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a8baa' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+
+    /* ── Responsive (tambahan style.css) ── */
     @media(max-width:768px){
       .comp-grid{grid-template-columns:1fr}
       .login-box{padding:28px 22px}
@@ -104,7 +117,7 @@
     <div id="scrDash" style="display:none">
       <div class="max-w-6xl mx-auto px-5 py-7">
 
-        <!-- Stats -->
+        <!-- Stats — IDs harus match utils.js updateStats() -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7 no-print">
           <div class="card card-glow animate-in delay-1">
             <div class="text-[10px] text-[--muted] uppercase tracking-wider mb-1">Total Data</div>
@@ -168,7 +181,7 @@
 
                 <div><label class="field-label">Dibayarkan Kepada<span class="required-star">*</span></label><input type="text" id="fBayar" class="input-field" placeholder="Nama penerima pembayaran" required></div>
 
-                <!-- Upload -->
+                <!-- Upload — handlers dari app.js -->
                 <div>
                   <div class="flex items-center justify-between mb-2">
                     <label class="field-label">Upload Bukti Dokumen</label>
@@ -211,7 +224,7 @@
                 <button class="tab-item" data-t="Belum Lunas" onclick="switchTab('Belum Lunas',this)">Belum Lunas</button>
                 <button class="tab-item" data-t="Semua" onclick="switchTab('Semua',this)">Semua</button>
               </div>
-              <div id="hList" class="max-h-[520px] overflow-y:auto pr-1 space-y-0">
+              <div id="hList" class="max-h-[520px] overflow-y-auto pr-1 space-y-0">
                 <div class="text-center py-12 text-[--muted]"><div class="text-4xl mb-2">📋</div><p class="text-xs">Memuat data...</p></div>
               </div>
             </div>
@@ -221,7 +234,7 @@
     </div>
   </main>
 
-  <!-- DOCUMENT MODAL -->
+  <!-- ═══ DOCUMENT MODAL — id="documentModal" agar print CSS di style.css berfungsi ═══ -->
   <div id="documentModal" class="modal-bg hidden">
     <div class="modal-content modal-box" style="max-width:900px">
       <div class="page-toolbar flex items-center justify-between pb-3 mb-3 border-b border-gray-200 no-print bg-white -mx-8 -mt-8 pt-5 px-8 rounded-t-xl">
@@ -235,10 +248,13 @@
     </div>
   </div>
 
-  <!-- TOASTS -->
+  <!-- TOASTS — id="toastBox" agar utils.js showToast() berfungsi -->
   <div id="toastBox" class="toast-container"></div>
 
-  <!-- EXTERNAL SCRIPTS -->
+  <!-- ══════════════════════════════════════════════════════════════
+       EXTERNAL SCRIPTS — urutan sesuai dependency chain
+       config → utils → firebase-init → firestore-db → drive-sync → app
+       ══════════════════════════════════════════════════════════════ -->
   <script src="config.js"></script>
   <script src="utils.js"></script>
   <script src="firebase-init.js"></script>
@@ -246,21 +262,34 @@
   <script src="drive-sync.js"></script>
   <script src="app.js"></script>
 
-  <!-- INLINE UI FUNCTIONS -->
+  <!-- ══════════════════════════════════════════════════════════════
+       INLINE: Fungsi UI yang DIPANGGIL oleh external JS
+       (app.js, firebase-init.js, utils.js memanggil fungsi-fungsi ini)
+       ══════════════════════════════════════════════════════════════ -->
   <script>
+  /* ═══════════════════════════════════════════════════
+     GLOBAL COUNTER untuk item rows (dipakai app.js resetForm)
+     ═══════════════════════════════════════════════════ */
   var itemCnt = 0;
 
+  /* ═══════════════════════════════════════════════════
+     SCREEN SWITCHING — dipanggil app.js onAuthStateChanged
+     ═══════════════════════════════════════════════════ */
   function showDashboard() {
     document.getElementById('scrLogin').style.display = 'none';
     document.getElementById('scrDash').style.display = 'block';
     document.getElementById('hdrAuth').style.display = 'flex';
+
     var cfg = getCurrentCompanyConfig();
     if (cfg) {
       var badge = document.getElementById('hdrBadge');
       badge.className = 'comp-badge ' + cfg.id;
       badge.innerHTML = '<span>' + cfg.branding.icon + '</span>' + cfg.code;
+
       var sub = document.getElementById('fSub');
       if (sub) sub.textContent = 'Simpan ke ' + cfg.name + ' → Firebase → Drive';
+
+      /* Terapkan default values dari company config */
       var defaults = ConfigHelper.getDefaultsForCompany(cfg.id);
       var elLokasi = document.getElementById('fLokasi');
       var elKode = document.getElementById('fKode');
@@ -269,8 +298,11 @@
       if (defaults.kode && elKode && !elKode.value) elKode.value = defaults.kode;
       if (defaults.jenis_pengajuan && elJenis && !elJenis.value) elJenis.value = defaults.jenis_pengajuan;
     }
+
     var user = getCurrentUser();
-    if (user) document.getElementById('hdrEmail').textContent = user.email;
+    if (user) {
+      document.getElementById('hdrEmail').textContent = user.email;
+    }
   }
 
   function showLoginScreen() {
@@ -280,11 +312,15 @@
     document.querySelectorAll('.comp-card').forEach(function(e) { e.classList.remove('picked'); });
   }
 
+  /* Dipanggil app.js keyboard handler (Escape saat login) */
   function hideLoginModal() {
     var err = document.getElementById('lErr');
     if (err) { err.classList.remove('show'); err.textContent = ''; }
   }
 
+  /* ═══════════════════════════════════════════════════
+     STATUS INDICATOR — dipanggil firebase-init.js updateStatus()
+     ═══════════════════════════════════════════════════ */
   function updateStatus(cls, msg) {
     var dot = document.getElementById('sDot');
     var text = document.getElementById('sText');
@@ -292,6 +328,9 @@
     if (text) text.textContent = msg;
   }
 
+  /* ═══════════════════════════════════════════════════
+     COMPANY SELECTION — dipanggil dari login UI onclick
+     ═══════════════════════════════════════════════════ */
   function pickComp(id) {
     setCurrentCompany(id);
     document.querySelectorAll('.comp-card').forEach(function(e) { e.classList.remove('picked'); });
@@ -299,6 +338,10 @@
     if (el) el.classList.add('picked');
   }
 
+  /* ═══════════════════════════════════════════════════
+     AUTH — dipanggil dari login UI onclick
+     Menggunakan loginUser() dari firebase-init.js
+     ═══════════════════════════════════════════════════ */
   function showLoginError(msg) {
     var el = document.getElementById('lErr');
     if (el) { el.textContent = msg; el.classList.add('show'); }
@@ -308,37 +351,64 @@
     var em = document.getElementById('lEmail').value.trim();
     var pw = document.getElementById('lPass').value;
     var btn = document.getElementById('lBtn');
+
     showLoginError('');
     if (!em || !pw) return showLoginError('Email dan password wajib diisi');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return showLoginError('Format email tidak valid');
     if (!getActiveCompanyId()) return showLoginError('Pilih perusahaan terlebih dahulu');
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Memproses...';
+
     var result = await loginUser(em, pw);
-    if (!result.success) showLoginError(result.error);
+
+    if (!result.success) {
+      showLoginError(result.error);
+    }
+
     btn.disabled = false;
     btn.innerHTML = 'Masuk ke Dashboard';
   }
 
-  async function doLogout() { await logoutUser(); }
+  /* Menggunakan logoutUser() dari firebase-init.js */
+  async function doLogout() {
+    await logoutUser();
+  }
 
+  /* ═══════════════════════════════════════════════════
+     FORM ITEMS — dipanggil app.js init() & resetForm()
+     ═══════════════════════════════════════════════════ */
   function addFormItem(d) {
-    d = d || {}; itemCnt++; var n = itemCnt;
-    document.getElementById('itemsBox').insertAdjacentHTML('beforeend',
-      '<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="it-' + n + '">' +
+    d = d || {};
+    itemCnt++;
+    var n = itemCnt;
+    var html = '<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="it-' + n + '">' +
       '<div class="col-span-5"><input type="text" name="in_' + n + '" class="input-field text-sm" placeholder="Nama barang/jasa" value="' + escapeHtml(d.ket || d.name || '') + '"></div>' +
       '<div class="col-span-2"><input type="number" name="iq_' + n + '" class="input-field text-sm text-center" placeholder="Qty" value="' + (d.qty || 1) + '" min="1"></div>' +
       '<div class="col-span-3"><input type="number" name="ip_' + n + '" class="input-field text-sm mono" placeholder="Harga" value="' + (d.nominal || d.price || '') + '" min="0"></div>' +
       '<div class="col-span-2 flex items-center justify-end gap-1">' +
         '<span class="text-[10px] font-mono text-[--muted]" id="sub-' + n + '">Rp 0</span>' +
         (n > 1 ? '<button type="button" onclick="rmItem(' + n + ')" class="w-6 h-6 rounded bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs flex items-center justify-center transition-colors">×</button>' : '') +
-      '</div></div>');
+      '</div>' +
+    '</div>';
+
+    document.getElementById('itemsBox').insertAdjacentHTML('beforeend', html);
+
+    /* Pasang listener agar calcTotal (dari app.js) terpicu */
     var row = document.getElementById('it-' + n);
-    row.querySelectorAll('input').forEach(function(inp) { inp.addEventListener('input', calcTotal); });
+    row.querySelectorAll('input').forEach(function(inp) {
+      inp.addEventListener('input', calcTotal);
+    });
   }
 
-  function rmItem(n) { var el = document.getElementById('it-' + n); if (el) { el.remove(); calcTotal(); } }
+  function rmItem(n) {
+    var el = document.getElementById('it-' + n);
+    if (el) { el.remove(); calcTotal(); }
+  }
 
+  /* ═══════════════════════════════════════════════════
+     UPLOAD PROGRESS — dipanggil utils.js updateUploadProgress()
+     ═══════════════════════════════════════════════════ */
   function showUploadProgress(percent) {
     var wrap = document.getElementById('upBarWrap');
     var fill = document.getElementById('upBarFill');
@@ -353,6 +423,10 @@
     setTimeout(function() { if (wrap) wrap.style.display = 'none'; }, 800);
   }
 
+  /* ═══════════════════════════════════════════════════
+     TABS — dipanggil dari history UI onclick
+     Menggunakan state.currentTab (dibaca app.js renderHistory)
+     ═══════════════════════════════════════════════════ */
   function switchTab(t, btn) {
     document.querySelectorAll('.tab-item').forEach(function(b) { b.classList.remove('on'); });
     if (btn) btn.classList.add('on');
@@ -360,6 +434,9 @@
     renderHistory();
   }
 
+  /* ═══════════════════════════════════════════════════
+     DOCUMENT PREVIEW & PDF
+     ═══════════════════════════════════════════════════ */
   function collectFormData() {
     var items = [];
     document.querySelectorAll('.item-row').forEach(function(row) {
@@ -378,10 +455,12 @@
       dibayarkan_kepada: document.getElementById('fBayar')?.value?.trim() || '',
       tanggal_pembayaran: document.getElementById('fTglBayar')?.value || '',
       catatan_tambahan: document.getElementById('fCatatan')?.value?.trim() || '',
-      items: items, total_nominal: calcTotal()
+      items: items,
+      total_nominal: calcTotal()
     };
   }
 
+  /* Ambil signature: dari data history jika ada, fallback ke company default */
   function getSignatures(data) {
     if (data.dibuat_oleh) return data;
     var sigs = ConfigHelper.getSignaturesForCompany(getActiveCompanyId());
@@ -395,15 +474,28 @@
     d = getSignatures(d);
     var items = d.items || [];
     var cfg = getCurrentCompanyConfig();
+
     var rows = items.map(function(it, i) {
       var qty = parseFloat(it.qty) || 1;
       var price = it.nominal || it.price || 0;
-      return '<tr><td style="text-align:center">' + (i + 1) + '</td><td>' + escapeHtml(it.ket || it.name || '') + '</td><td style="text-align:center">' + qty + '</td><td style="text-align:right">' + formatCurrency(price) + '</td><td style="text-align:right">' + formatCurrency(qty * price) + '</td><td>' + escapeHtml(it.keterangan || '-') + '</td></tr>';
+      return '<tr>' +
+        '<td style="text-align:center">' + (i + 1) + '</td>' +
+        '<td>' + escapeHtml(it.ket || it.name || '') + '</td>' +
+        '<td style="text-align:center">' + qty + '</td>' +
+        '<td style="text-align:right">' + formatCurrency(price) + '</td>' +
+        '<td style="text-align:right">' + formatCurrency(qty * price) + '</td>' +
+        '<td>' + escapeHtml(it.keterangan || '-') + '</td>' +
+      '</tr>';
     }).join('');
+
     var tot = d.total_nominal || d.grandTotal || 0;
     var links = d.google_drive_links || [];
+
     return '<div class="document-page">' +
-      '<div class="doc-head"><div class="doc-title">FORMULIR PENGAJUAN HO</div>' + (cfg ? '<div class="doc-company" style="color:' + cfg.branding.primaryColor + '">' + cfg.name + '</div>' : '') + '</div>' +
+      '<div class="doc-head">' +
+        '<div class="doc-title">FORMULIR PENGAJUAN HO</div>' +
+        (cfg ? '<div class="doc-company" style="color:' + cfg.branding.primaryColor + '">' + cfg.name + '</div>' : '') +
+      '</div>' +
       '<div class="doc-grid">' +
         '<div class="doc-row"><span class="doc-lbl">Lokasi</span><span class="doc-val">' + escapeHtml(d.lokasi || '-') + '</span></div>' +
         '<div class="doc-row"><span class="doc-lbl">Tanggal</span><span class="doc-val">' + formatDate(d.tanggal) + '</span></div>' +
@@ -413,9 +505,18 @@
         '<div class="doc-row"><span class="doc-lbl">Status</span><span class="doc-val"><strong>' + (d.status || '-') + '</strong></span></div>' +
         '<div class="doc-row" style="grid-column:span 2"><span class="doc-lbl">Dibayarkan Kepada</span><span class="doc-val">' + escapeHtml(d.dibayarkan_kepada || '-') + '</span></div>' +
       '</div>' +
-      '<table class="doc-tbl"><thead><tr><th style="width:35px;text-align:center">No</th><th>Uraian</th><th style="width:45px;text-align:center">Qty</th><th style="width:130px;text-align:right">Harga Satuan</th><th style="width:130px;text-align:right">Jumlah</th><th>Keterangan</th></tr></thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;padding:18px;color:#94a3b8">Tidak ada item</td></tr>') + '</tbody>' +
-      '<tfoot><tr class="doc-total"><td colspan="4" style="text-align:right;font-size:12px">GRAND TOTAL</td><td style="text-align:right;font-size:13px">' + formatCurrency(tot) + '</td><td></td></tr></tfoot></table>' +
+      '<table class="doc-tbl">' +
+        '<thead><tr>' +
+          '<th style="width:35px;text-align:center">No</th>' +
+          '<th>Uraian</th>' +
+          '<th style="width:45px;text-align:center">Qty</th>' +
+          '<th style="width:130px;text-align:right">Harga Satuan</th>' +
+          '<th style="width:130px;text-align:right">Jumlah</th>' +
+          '<th>Keterangan</th>' +
+        '</tr></thead>' +
+        '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;padding:18px;color:#94a3b8">Tidak ada item</td></tr>') + '</tbody>' +
+        '<tfoot><tr class="doc-total"><td colspan="4" style="text-align:right;font-size:12px">GRAND TOTAL</td><td style="text-align:right;font-size:13px">' + formatCurrency(tot) + '</td><td></td></tr></tfoot>' +
+      '</table>' +
       (d.catatan_tambahan ? '<div class="doc-notes"><div class="doc-note-h">CATATAN</div><div class="doc-note-b">' + escapeHtml(d.catatan_tambahan) + '</div></div>' : '') +
       (links.length ? '<div class="doc-file-box"><div class="doc-file-h">FILE TERUPLOAD (' + links.length + ')</div>' + links.map(function(l) { return '<div class="doc-file-link"><a href="' + l.url + '" target="_blank">' + escapeHtml(l.name || 'File') + '</a></div>'; }).join('') + '</div>' : '') +
       (d.tanggal_pembayaran ? '<div style="margin-top:10px;font-size:11px;color:#64748b"><strong>Tanggal Pembayaran:</strong> ' + formatDate(d.tanggal_pembayaran) + '</div>' : '') +
@@ -424,7 +525,8 @@
         '<div class="doc-sig"><div class="doc-sig-lbl">DISETUJUI OLEH</div><div class="doc-sig-line"></div><div class="doc-sig-nm">' + escapeHtml(d.disetujui_oleh || '-') + '</div></div>' +
         '<div class="doc-sig"><div class="doc-sig-lbl">KEUANGAN</div><div class="doc-sig-line"></div><div class="doc-sig-nm">' + escapeHtml(d.keuangan || '-') + '</div></div>' +
         '<div class="doc-sig"><div class="doc-sig-lbl">DIREKTUR UTAMA</div><div class="doc-sig-line"></div><div class="doc-sig-nm">' + escapeHtml(d.direktur_utama || '-') + '</div></div>' +
-      '</div></div>';
+      '</div>' +
+    '</div>';
   }
 
   function previewDoc() {
@@ -433,18 +535,28 @@
     if (!data.items.length) return showToast('Tambahkan minimal 1 item', 'warning');
     var modal = document.getElementById('documentModal');
     var body = document.getElementById('docBody');
-    if (modal && body) { body.innerHTML = buildDoc(data); modal.classList.remove('hidden'); }
+    if (modal && body) {
+      body.innerHTML = buildDoc(data);
+      modal.classList.remove('hidden');
+    }
   }
 
+  /* Dipanggil app.js renderHistory → onclick viewItem(id) */
   function viewItem(id) {
     var it = state.history.find(function(d) { return d.id === id; });
     if (!it) return;
     var modal = document.getElementById('documentModal');
     var body = document.getElementById('docBody');
-    if (modal && body) { body.innerHTML = buildDoc(it); modal.classList.remove('hidden'); }
+    if (modal && body) {
+      body.innerHTML = buildDoc(it);
+      modal.classList.remove('hidden');
+    }
   }
 
-  function closeDoc() { var modal = document.getElementById('documentModal'); if (modal) modal.classList.add('hidden'); }
+  function closeDoc() {
+    var modal = document.getElementById('documentModal');
+    if (modal) modal.classList.add('hidden');
+  }
 
   function dlPDF() {
     var el = document.querySelector('.doc-wrap');
@@ -463,6 +575,11 @@
     .catch(function(e) { console.error(e); showToast('Gagal membuat PDF', 'error'); });
   }
 
+  /* ═══════════════════════════════════════════════════
+     STATS EXTENSION
+     utils.js updateStats() menangani: totalData, sentData, sheetsData, pendingData
+     Di sini kita tambahkan: lunasData
+     ═══════════════════════════════════════════════════ */
   var _origUpdateStats = window.updateStats;
   window.updateStats = function() {
     if (_origUpdateStats) _origUpdateStats();
