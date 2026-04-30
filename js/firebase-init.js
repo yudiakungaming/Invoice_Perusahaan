@@ -1,217 +1,182 @@
 /**
- * ============================================
- * FinanceSync Pro v3.5 - Firebase Initialization (FIXED)
- * ============================================
- * PERUBAHAN:
- * - Hapus duplikasi dengan index.html
- * - Integrasi baik dengan config.js state
- * - Auth listener yang benar
+ * FinanceSync Pro v3.5 - Firebase Initialization
+ * Config sudah di-hardcode di config.js
+ * File ini hanya menangani init, auth, dan connection
  */
 
-// ==================== LOAD SAVED CONFIGURATIONS ====================
-function loadSavedConfigs() {
-  var saved = localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG);
-  if (saved && elements.firebaseConfigInput) {
-    elements.firebaseConfigInput.value = saved;
-  }
-  
-  var scriptUrl = localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL);
-  if (scriptUrl) {
-    state.appsScriptUrl = scriptUrl;
-  }
-}
-
-// ==================== AUTH STATE MANAGEMENT ====================
+// ==================== AUTH STATE ====================
 let authInstance = null;
 
-function isLoggedIn() {
-  return state.auth.isAuthenticated && state.auth.currentUser !== null;
-}
-
-function getCurrentUser() {
-  return state.auth.currentUser;
-}
-
-function getActiveCompanyId() {
-  return state.auth.currentCompanyId;
-}
-
-function updateAuthUI() {
-  // Ini akan dipanggil dari index.html juga
-  if (typeof window.updateAuthUI === 'function') {
-    window.updateAuthUI(isLoggedIn());
-  }
-}
-
-// ==================== LOGIN/LOGOUT FUNCTIONS ====================
+// ==================== LOGIN ====================
 async function loginUser(email, password) {
   try {
-    console.log('[Auth] Login attempt for:', email);
-    
-    if (!authInstance) {
-      throw new Error('Firebase Auth belum siap!');
-    }
-    
-    // Login via Firebase Auth
+    console.log('[Auth] Login attempt:', email);
+
+    if (!authInstance) throw new Error('Firebase Auth belum siap!');
+
     const userCredential = await authInstance.signInWithEmailAndPassword(email, password);
-    const firebaseUser = userCredential.user;
-    
-    console.log('[Auth] ✅ Firebase auth success! UID:', firebaseUser.uid);
-    
-    // Detect company dari email atau gunakan yang sudah dipilih sebelum login
-    let detectedCompanyId = state.auth.currentCompanyId; // Pakai yang sudah dipilih di login modal
-    
-    if (!detectedCompanyId) {
-      // Auto-detect dari email
-      for (const cid of COMPANY_IDS) {
-        if (COMPANY_CONFIG[cid].testCredentials?.email === email) {
-          detectedCompanyId = cid;
-          break;
-        }
-      }
+    const fbUser = userCredential.user;
+
+    console.log('[Auth] Firebase auth OK — UID:', fbUser.uid);
+
+    // Deteksi company: pakai yang sudah dipilih di login modal,
+    // fallback ke deteksi dari email
+    let companyId = state.auth.currentCompanyId;
+
+    if (!companyId) {
+      const em = email.toLowerCase();
+      if (em.includes('nmsa')) companyId = 'nmsa';
+      else if (em.includes('ipn')) companyId = 'ipn';
     }
-    
-    if (!detectedCompanyId) {
+
+    if (!companyId) {
       await authInstance.signOut();
-      throw new Error('Email ini tidak terdaftar untuk perusahaan manapun!');
+      throw new Error('Tidak bisa mendeteksi perusahaan dari email ini!');
     }
-    
+
     // Set state
     state.auth.currentUser = {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      displayName: firebaseUser.displayName || email.split('@')[0]
+      uid: fbUser.uid,
+      email: fbUser.email,
+      displayName: fbUser.displayName || email.split('@')[0]
     };
     state.auth.isAuthenticated = true;
-    
-    // Set company
-    setCurrentCompany(detectedCompanyId);
-    
-    // Save session
-    localStorage.setItem(CONFIG_KEYS.CURRENT_USER_SESSION, JSON.stringify({
-      uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      displayName: firebaseUser.displayName || email.split('@')[0],
-      companyId: detectedCompanyId,
-      loginTime: new Date().toISOString()
-    }));
-    
-    console.log(`[Auth] ✅ Login berhasil! Company: ${COMPANY_CONFIG[detectedCompanyId].displayName}`);
-    
+    setCurrentCompany(companyId);
+
+    console.log('[Auth] Login berhasil — Company:', COMPANY_CONFIG[companyId].displayName);
+
     return {
       success: true,
       user: state.auth.currentUser,
-      companyId: detectedCompanyId,
-      companyName: COMPANY_CONFIG[detectedCompanyId].displayName
+      companyId: companyId,
+      companyName: COMPANY_CONFIG[companyId].displayName
     };
-    
+
   } catch (error) {
     console.error('[Auth] Error:', error.code, error.message);
-    
+
     let msg = error.message;
-    if (error.code === 'auth/user-not-found') msg = 'Email tidak ditemukan!';
-    else if (error.code === 'auth/wrong-password') msg = 'Password salah!';
+    if (error.code === 'auth/user-not-found') msg = 'Email tidak ditemukan di Firebase!';
+    else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') msg = 'Email atau password salah!';
     else if (error.code === 'auth/too-many-requests') msg = 'Terlalu banyak percobaan. Tunggu sebentar.';
     else if (error.code === 'auth/invalid-email') msg = 'Format email tidak valid!';
-    
+
     return { success: false, error: msg };
   }
 }
 
+// ==================== LOGOUT ====================
 async function logoutUser() {
   try {
     if (authInstance) await authInstance.signOut();
     clearCurrentCompany();
-    showToast('👋 Berhasil logout!', 'success');
+    state.history = [];
+    state.isConnected = false;
+    if (state.unsubscribeListener) { state.unsubscribeListener(); state.unsubscribeListener = null; }
+    showToast('Berhasil keluar', 'info');
   } catch (e) {
     showToast('Logout error: ' + e.message, 'error');
   }
 }
 
-async function restoreSession() {
-  try {
-    const sessionStr = localStorage.getItem(CONFIG_KEYS.CURRENT_USER_SESSION);
-    if (!sessionStr) return false;
-    
-    const session = JSON.parse(sessionStr);
-    
-    // Cek apakah Firebase Auth masih aktif
-    if (authInstance?.currentUser) {
-      state.auth.currentUser = {
-        uid: authInstance.currentUser.uid,
-        email: authInstance.currentUser.email,
-        displayName: authInstance.currentUser.displayName || session.displayName
-      };
-      state.auth.isAuthenticated = true;
-      
-      if (session.companyId && COMPANY_CONFIG[session.companyId]) {
-        setCurrentCompany(session.companyId);
-      }
-      
-      console.log(`[Auth] ✅ Session restored: ${state.auth.currentCompanyData?.displayName}`);
-      return true;
-    } else {
-      console.warn('[Auth] Session expired');
-      clearCurrentCompany();
-      return false;
-    }
-  } catch (e) {
-    console.error('[Auth] Restore error:', e);
-    clearCurrentCompany();
-    return false;
-  }
-}
-
 // ==================== MAIN INITIALIZATION ====================
 async function initConnection() {
-  console.log('[Firebase] Starting connection...');
-  
-  // Update UI
+  console.log('[Firebase] Initializing...');
+
   if (typeof updateStatus === 'function') updateStatus('connecting', 'Menghubungkan...');
-  
-  const hasConfig = !!localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG);
-  if (!hasConfig) {
-    console.warn('[Firebase] No config found!');
-    if (typeof updateStatus === 'function') updateStatus('error', 'Belum dikonfigurasi');
-    setTimeout(() => { if (typeof openSetupModal === 'function') openSetupModal(); }, 1000);
+
+  // Cek apakah FIREBASE_CONFIG valid (dari config.js)
+  if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.projectId) {
+    console.error('[Firebase] FIREBASE_CONFIG tidak valid!');
+    if (typeof updateStatus === 'function') updateStatus('error', 'Config tidak valid');
     return;
   }
 
   try {
-    const config = JSON.parse(localStorage.getItem(CONFIG_KEYS.FIREBASE_CONFIG));
-    console.log('[Firebase] Initializing project:', config.projectId);
-    
-    // Initialize Firebase (hanya sekali!)
+    // Initialize Firebase app (hanya sekali)
     if (!firebase.apps.length) {
-      firebase.initializeApp(config);
-      console.log('[Firebase] ✅ App initialized');
+      firebase.initializeApp(FIREBASE_CONFIG);
+      console.log('[Firebase] App initialized — project:', FIREBASE_CONFIG.projectId);
     }
-    
+
     // Initialize Auth
     authInstance = firebase.auth();
-    console.log('[Firebase] ✅ Auth initialized');
-    
+
+    // Enable persistence (offline support)
+    try {
+      await authInstance.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    } catch (e) {
+      console.warn('[Firebase] Auth persistence skipped:', e.message);
+    }
+
     // Initialize Firestore
     state.db = firebase.firestore();
-    
-    // Test connection
-    await state.db.collection('Invoice-NMSA').limit(1).get(); // Test dengan salah satu collection
-    
+
+    // Enable offline persistence
+    try {
+      await state.db.enablePersistence({ synchronizeTabs: true });
+    } catch (e) {
+      console.warn('[Firebase] Firestore persistence:', e.code || e.message);
+    }
+
+    // Test koneksi — coba baca collection yang sudah ada
+    // Jika collection kosong/belum ada, tetap dianggap OK
+    try {
+      await state.db.collection('Invoice-NMSA').limit(1).get();
+    } catch (e) {
+      // Permission error atau collection belum ada — masih OK kalau auth nanti jalan
+      console.warn('[Firebase] Test read skipped:', e.message);
+    }
+
     // Update state
     state.isConnected = true;
     state.isConnecting = false;
-    
-    if (typeof updateStatus === 'function') updateStatus('connected', '✅ Terhubung');
-    
-    // Restore session jika ada
-    const restored = await restoreSession();
-    if (restored) {
-      console.log('[Firebase] ✅ Session restored, starting listener...');
-      if (typeof applyDateFilter === 'function') applyDateFilter();
-    }
-    
+
+    if (typeof updateStatus === 'function') updateStatus('connected', 'Firebase terhubung');
+
+    // Set auth state listener — ini yang mengontrol login/dashboard
+    authInstance.onAuthStateChanged(function(user) {
+      if (user) {
+        // User sudah login (session persist atau baru login)
+        state.auth.currentUser = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email.split('@')[0]
+        };
+        state.auth.isAuthenticated = true;
+
+        // Auto-detect company jika belum ada
+        if (!state.auth.currentCompanyId) {
+          const em = user.email.toLowerCase();
+          if (em.includes('nmsa')) setCurrentCompany('nmsa');
+          else if (em.includes('ipn')) setCurrentCompany('ipn');
+        }
+
+        console.log('[Auth] State changed — logged in:', user.email, '| Company:', state.auth.currentCompanyId);
+
+        // Callback ke index.html untuk show dashboard
+        if (typeof window.onAuthStateChanged === 'function') {
+          window.onAuthStateChanged(true);
+        }
+
+      } else {
+        // User logout
+        state.auth.currentUser = null;
+        state.auth.isAuthenticated = false;
+
+        console.log('[Auth] State changed — logged out');
+
+        // Callback ke index.html untuk show login
+        if (typeof window.onAuthStateChanged === 'function') {
+          window.onAuthStateChanged(false);
+        }
+      }
+    });
+
+    console.log('[Firebase] Fully initialized — waiting for auth state...');
+
   } catch (error) {
-    console.error('[Firebase Error]:', error);
+    console.error('[Firebase] Init error:', error);
     state.isConnected = false;
     state.isConnecting = false;
     if (typeof updateStatus === 'function') updateStatus('error', 'Gagal: ' + error.message);
@@ -219,50 +184,9 @@ async function initConnection() {
   }
 }
 
-// ==================== SAVE CONFIG ====================
-window.saveFirebaseConfig = async function() {
-  try {
-    const inputEl = document.getElementById('firebaseConfigInput');
-    const errorEl = document.getElementById('configError');
-    
-    if (!inputEl?.value.trim()) {
-      showError('Paste Firebase config!');
-      return;
-    }
-    
-    const config = JSON.parse(inputEl.value.trim());
-    if (!config.apiKey || !config.projectId) {
-      showError('Config tidak lengkap! Butuh apiKey & projectId.');
-      return;
-    }
-    
-    localStorage.setItem(CONFIG_KEYS.FIREBASE_CONFIG, inputEl.value.trim());
-    showToast('Config tersimpan! Menghubungkan...', 'info');
-    closeSetupModal();
-    
-    await initConnection();
-    
-  } catch (e) {
-    showError('Format JSON tidak valid: ' + e.message);
-  }
-};
-
-function showError(msg) {
-  const el = document.getElementById('configError');
-  if (el) { el.textContent = msg; el.classList.remove('hidden'); }
-  showToast(msg, 'error');
-}
-
 // ==================== EXPORT ====================
-window.loadSavedConfigs = loadSavedConfigs;
 window.initConnection = initConnection;
-window.saveFirebaseConfig = saveFirebaseConfig;
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
-window.restoreSession = restoreSession;
-window.isLoggedIn = isLoggedIn;
-window.getCurrentUser = getCurrentUser;
-window.getActiveCompanyId = getActiveCompanyId;
-window.updateAuthUI = updateAuthUI;
 
-console.log('%c🔥 firebase-init.js v3.5 loaded', 'color:#f97316;');
+console.log('%c firebase-init.js loaded | Config: ' + (FIREBASE_CONFIG?.projectId || 'NONE'), 'color:#f97316;');
