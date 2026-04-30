@@ -1,16 +1,10 @@
 /**
- * ============================================
- * FinanceSync Pro v3.5 - Configuration & Global State (FIXED)
- * ============================================
- * PERUBAHAN:
- * - Fix collection names agar konsisten dengan kebutuhan multi-company
- * - Tambahkan helper getCollectionName()
- * - Pastikan state terintegrasi dengan baik
+ * FinanceSync Pro v3.5 - Configuration & Global State
+ * Semua config di-hardcode — tidak perlu setup modal
  */
 
-// ==================== CONFIGURATION KEYS ====================
+// ==================== CONFIGURATION KEYS (hanya untuk session) ====================
 const CONFIG_KEYS = {
-  FIREBASE_CONFIG: 'financesync_firebase_config_v35',
   APPS_SCRIPT_URL: 'financesync_apps_script_url_v35',
   CURRENT_COMPANY_ID: 'financesync_current_company_id',
   CURRENT_USER_SESSION: 'financesync_user_session_v35'
@@ -18,44 +12,25 @@ const CONFIG_KEYS = {
 
 // ==================== GLOBAL STATE ====================
 const state = {
-  // Firebase Connection State
   isConnected: false,
   isConnecting: true,
-  
-  // Database Reference
   db: null,
-  
-  // Application Data
   history: [],
   currentTab: 'Lunas',
   lastFormData: null,
   lastSavedDocId: null,
-  
-  // Form Items State
   items: [{ ket: '', qty: '', nominal: 0, keterangan: '' }],
-  
-  // File Upload State
   selectedFiles: [],
-  
-  // Listener Management
   unsubscribeListener: null,
   driveSyncListeners: {},
   pollingInterval: null,
-  
-  // Sync State
   isSyncing: false,
-  appsScriptUrl: localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL) || '',
-  
-  // Edit Mode State
+  appsScriptUrl: '',
   editingDocId: null,
   pendingDeleteId: null,
   pendingDeleteKode: null,
-  
-  // Filter State
   filterDateFrom: '',
   filterDateTo: '',
-  
-  // Google Drive Integration State
   driveIntegration: {
     isUploading: false,
     uploadProgress: 0,
@@ -63,8 +38,6 @@ const state = {
     driveLink: '',
     uploadError: null
   },
-  
-  // ★ MULTI-COMPANY STATE (v3.5)
   auth: {
     currentUser: null,
     currentCompanyId: null,
@@ -73,10 +46,7 @@ const state = {
   }
 };
 
-// ==================== DOM ELEMENTS CACHE ====================
 let elements = {};
-
-// ==================== TOAST TIMEOUT ====================
 let toastTimeout = null;
 
 // ==================== DEFAULT SIGNATORIES ====================
@@ -90,35 +60,36 @@ const DEFAULT_SIGNATORIES = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// ★★★ MULTI-COMPANY CONFIGURATION (FIXED v3.5) ★★★
+// FIREBASE CONFIG — HARDCODED, TIDAK PERLU SETUP
 // ═══════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAc78YtHdF6uaE5mr4inU8xG4EYDU5FWVY",
+  authDomain: "ai-devender-7b55c.firebaseapp.com",
+  databaseURL: "https://ai-devender-7b55c-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ai-devender-7b55c",
+  storageBucket: "ai-devender-7b55c.firebasestorage.app",
+  messagingSenderId: "11961460704",
+  appId: "1:11961460704:web:f6ca0b3a1e329856486d85"
+};
 
-/**
- * COMPANY_CONFIG - Konfigurasi untuk setiap perusahaan
- * 
- * ⚠️ PENTING: Setiap company punya koleksi Firestore SENDIRI!
- * - NMSA → Collection: 'Invoice-NMSA'
- * - IPN  → Collection: 'Invoice-IPN'
- */
+// ═══════════════════════════════════════════════════════════════
+// APPS SCRIPT URL — HARDCODED
+// ═══════════════════════════════════════════════════════════════
+const HARDCODED_DRIVE_URL = "https://script.google.com/macros/s/AKfycbzl7mTGYp5qJL0t-0fiCw56BM2yX3bNta4S_Y1esyVGHSl_iEAMtKLnpBNntjGzB4E5/exec";
+
+// ═══════════════════════════════════════════════════════════════
+// MULTI-COMPANY CONFIG
+// Setiap company punya collection Firestore sendiri
+// ═══════════════════════════════════════════════════════════════
 const COMPANY_CONFIG = {
   nmsa: {
     id: 'nmsa',
     code: 'NMSA',
     name: 'PT Nusantara Mineral Sukses Abadi',
     displayName: 'Invoice-NMSA',
-    
-    // ★ NAMA KOLEKSI FIRESTORE UNTUK COMPANY INI
-    collectionName: 'Invoice-NMSA',  // ← PENTING!
-    
+    collectionName: 'Invoice-NMSA',
     no_invoice_prefix: 'BKK-NMSA',
-    
-    branding: {
-      primaryColor: '#2563eb',
-      secondaryColor: '#1e40af',
-      logoUrl: '',
-      icon: '🏢'
-    },
-    
+    branding: { primaryColor: '#2563eb', secondaryColor: '#1e40af', logoUrl: '', icon: '🏢' },
     defaultSignatures: {
       dibuat_oleh: 'Nur Wahyudi',
       disetujui_oleh: 'Harijon',
@@ -127,32 +98,16 @@ const COMPANY_CONFIG = {
       direktur_utama: 'H. Andi Nursyam Halid',
       accounting: 'Sri Ekowati'
     },
-    
-    defaults: {
-      lokasi: 'Lt. 1',
-      kode: 'LP',
-      jenis_pengajuan: 'Biaya Operasional'
-    }
+    defaults: { lokasi: 'Lt. 1', kode: 'LP', jenis_pengajuan: 'Biaya Operasional' }
   },
-  
   ipn: {
     id: 'ipn',
     code: 'IPN',
     name: 'PT Industri Padi Nusantara',
     displayName: 'Invoice-IPN',
-    
-    // ★ NAMA KOLEKSI FIRESTORE UNTUK COMPANY INI
-    collectionName: 'Invoice-IPN',  // ← PENTING!
-    
+    collectionName: 'Invoice-IPN',
     no_invoice_prefix: 'BKK-IPN',
-    
-    branding: {
-      primaryColor: '#dc2626',
-      secondaryColor: '#991b1b',
-      logoUrl: '',
-      icon: '🏭'
-    },
-    
+    branding: { primaryColor: '#dc2626', secondaryColor: '#991b1b', logoUrl: '', icon: '🏭' },
     defaultSignatures: {
       dibuat_oleh: 'Admin IPN',
       disetujui_oleh: 'Manager IPN',
@@ -161,33 +116,20 @@ const COMPANY_CONFIG = {
       direktur_utama: 'Direktur IPN',
       accounting: 'Accounting IPN'
     },
-    
-    defaults: {
-      lokasi: 'Lt. 2',
-      kode: 'LP',
-      jenis_pengajuan: 'Biaya Operasional'
-    }
+    defaults: { lokasi: 'Lt. 2', kode: 'LP', jenis_pengajuan: 'Biaya Operasional' }
   }
 };
 
 const COMPANY_IDS = ['nmsa', 'ipn'];
 
-/**
- * ★ BARU: Get collection name untuk company aktif
- * Ini yang membuat setiap company punya data terpisah!
- * 
- * @param {string} companyId - ID company ('nmsa' atau 'ipn')
- * @returns {string} Nama koleksi Firestore
- */
+// ==================== COMPANY HELPERS ====================
 function getCollectionName(companyId) {
   const id = companyId || state.auth.currentCompanyId || 'nmsa';
   const config = COMPANY_CONFIG[id];
-  
   if (!config) {
     console.warn('[Config] Company not found:', id, '- fallback to Invoice-NMSA');
     return 'Invoice-NMSA';
   }
-  
   return config.collectionName;
 }
 
@@ -200,17 +142,28 @@ function getCurrentCompanyConfig() {
   return companyId ? COMPANY_CONFIG[companyId] : null;
 }
 
+function getCurrentUser() {
+  return state.auth.currentUser;
+}
+
+function isLoggedIn() {
+  return state.auth.isAuthenticated && state.auth.currentUser !== null;
+}
+
+function getActiveCompanyId() {
+  return state.auth.currentCompanyId;
+}
+
 function setCurrentCompany(companyId) {
   if (COMPANY_CONFIG[companyId]) {
     state.auth.currentCompanyId = companyId;
     state.auth.currentCompanyData = COMPANY_CONFIG[companyId];
     localStorage.setItem(CONFIG_KEYS.CURRENT_COMPANY_ID, companyId);
-    console.log(`✅ Company aktif: ${COMPANY_CONFIG[companyId].displayName} (Collection: ${COMPANY_CONFIG[companyId].collectionName})`);
+    console.log('Company aktif:', COMPANY_CONFIG[companyId].displayName, '| Collection:', COMPANY_CONFIG[companyId].collectionName);
     return true;
-  } else {
-    console.error(`❌ Company ID tidak valid: ${companyId}`);
-    return false;
   }
+  console.error('Company ID tidak valid:', companyId);
+  return false;
 }
 
 function clearCurrentCompany() {
@@ -227,77 +180,29 @@ function initializeCompanySession() {
   if (savedCompanyId && COMPANY_CONFIG[savedCompanyId]) {
     state.auth.currentCompanyId = savedCompanyId;
     state.auth.currentCompanyData = COMPANY_CONFIG[savedCompanyId];
-    console.log(`📦 Session ditemukan: ${COMPANY_CONFIG[savedCompanyId].displayName}`);
     return true;
   }
   return false;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FIREBASE CONFIGURATION
-// ═══════════════════════════════════════════════════════════════
-const FIREBASE_CONFIG = {
-  projectId: 'ai-devender-7b55c',
-  
-  // ⚠️ TIDAK lagi pakai 'submissions' sebagai default!
-  // Setiap company punya collection sendiri via getCollectionName()
-  
-  fields: {
-    tanggal: 'tanggal',
-    timestamp: 'timestamp',
-    lokasi: 'lokasi',
-    kode: 'kode',
-    no_invoice: 'no_invoice',
-    jenis_pengajuan: 'jenis_pengajuan',
-    total_nominal: 'total_nominal',
-    status: 'status',
-    dibayarkan_kepada: 'dibayarkan_kepada',
-    catatan_tambahan: 'catatan_tambahan',
-    companyId: 'company_id',
-    companyName: 'company_name',
-    googleDriveLink: 'google_drive_link',
-    fileName: 'nama_file',
-    fileId: 'file_id',
-    fileSize: 'file_size',
-    mimeType: 'mime_type',
-    uploadedAt: 'uploaded_at'
-  }
-};
-
-// ═══════════════════════════════════════════════════════════════
-// UPLOAD CONFIGURATION
+// UPLOAD CONFIG
 // ═══════════════════════════════════════════════════════════════
 const UPLOAD_CONFIG = {
   maxSizeBytes: 30 * 1024 * 1024,
   maxSizeDisplay: '30MB',
   warningSizeBytes: 10 * 1024 * 1024,
   warningSizeDisplay: '10MB',
-  
-  allowedMimeTypes: [
-    'application/pdf', 'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'text/plain', 'text/csv', 'application/zip'
-  ],
-  
-  allowedExtensions: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-                     '.jpg', '.jpeg', '.png', '.gif', '.webp', '.zip', '.txt', '.csv'],
-  
+  allowedExtensions: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.zip', '.txt', '.csv'],
   drive: { defaultFolderName: 'Submission_Files_FinanceSync', folderId: '' },
-  
-  validation: {
-    maxFileNameLength: 255,
-    blockedPatterns: [/\.\./, /[<>:"|?*]/, /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i]
-  }
+  validation: { maxFileNameLength: 255, blockedPatterns: [/\.\./, /[<>:"|?*]/] }
 };
 
 // ═══════════════════════════════════════════════════════════════
-// APPS SCRIPT CONFIGURATION
+// APPS SCRIPT CONFIG — pakai hardcoded, fallback ke localStorage
 // ═══════════════════════════════════════════════════════════════
 const APPS_SCRIPT_CONFIG = {
-  getUrl: () => localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL) || '',
+  getUrl: () => HARDCODED_DRIVE_URL || localStorage.getItem(CONFIG_KEYS.APPS_SCRIPT_URL) || '',
   setUrl: (url) => {
     if (url?.trim()) {
       localStorage.setItem(CONFIG_KEYS.APPS_SCRIPT_URL, url.trim());
@@ -306,90 +211,58 @@ const APPS_SCRIPT_CONFIG = {
     }
     return false;
   },
-  clearUrl: () => {
-    localStorage.removeItem(CONFIG_KEYS.APPS_SCRIPT_URL);
-    state.appsScriptUrl = '';
-  },
   isConfigured: () => {
     const url = APPS_SCRIPT_CONFIG.getUrl();
     return !!url && url.includes('script.google.com');
   },
-  
   actions: { SAVE_SUBMISSION: 'save', SYNC_SHEET: 'sync', UPLOAD_ONLY: 'upload_only', TEST_CONNECTION: 'test_connection' },
   timeout: { normal: 30000, upload: 120000, largeFile: 300000 }
 };
 
+// Inisialisasi appsScriptUrl dari hardcoded value
+state.appsScriptUrl = HARDCODED_DRIVE_URL;
+
 // ═══════════════════════════════════════════════════════════════
-// CONFIG HELPER FUNCTIONS
+// CONFIG HELPERS
 // ═══════════════════════════════════════════════════════════════
 const ConfigHelper = {
   validateFile: (file) => {
     if (!file) return { valid: false, error: 'Tidak ada file!' };
-    if (file.size > UPLOAD_CONFIG.maxSizeBytes) {
-      return { valid: false, error: `File terlalu besar! Maks ${UPLOAD_CONFIG.maxSizeDisplay}` };
-    }
+    if (file.size > UPLOAD_CONFIG.maxSizeBytes) return { valid: false, error: 'File terlalu besar! Maks ' + UPLOAD_CONFIG.maxSizeDisplay };
     const ext = '.' + file.name.toLowerCase().split('.').pop();
-    if (!UPLOAD_CONFIG.allowedExtensions.includes(ext)) {
-      return { valid: false, error: `Tipe tidak diizinkan: ${ext}` };
-    }
+    if (!UPLOAD_CONFIG.allowedExtensions.includes(ext)) return { valid: false, error: 'Tipe tidak diizinkan: ' + ext };
     return { valid: true, error: null };
   },
-  
+
   formatFileSize: (bytes) => {
     if (!bytes) return '0 Bytes';
     const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   },
-  
-  getMimeTypeFromExtension: (filename) => {
-    const ext = filename.toLowerCase().split('.').pop();
-    const mimeMap = {
-      pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
-      txt: 'text/plain', csv: 'text/csv', zip: 'application/zip'
-    };
-    return mimeMap[ext] || 'application/octet-stream';
-  },
-  
-  checkAppsScriptReady: () => {
-    if (!APPS_SCRIPT_CONFIG.isConfigured()) {
-      return { ready: false, message: '❌ Apps Script URL belum dikonfigurasi!' };
-    }
-    return { ready: true, message: '✅ Apps Script siap' };
-  },
-  
-  // ★ Helper untuk generate nomor invoice sesuai company
+
   generateInvoiceNumber: (companyId, nextNumber) => {
     const config = getCompanyConfig(companyId);
-    if (!config) return 'UNKNOWN-ERROR';
+    if (!config) return 'ERROR';
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = String(now.getFullYear()).slice(-2);
     const num = String(nextNumber).padStart(5, '0');
-    return `${config.no_invoice_prefix}/${month}/${year}/${num}`;
+    return config.no_invoice_prefix + '/' + month + '/' + year + '/' + num;
   },
-  
+
   getSignaturesForCompany: (companyId) => {
     const config = getCompanyConfig(companyId);
     return (config && config.defaultSignatures) ? config.defaultSignatures : DEFAULT_SIGNATORIES;
   },
-  
+
   getDefaultsForCompany: (companyId) => {
     const config = getCompanyConfig(companyId);
     return (config && config.defaults) ? { ...config.defaults } : { lokasi: '', kode: 'LP', jenis_pengajuan: '' };
-  },
-  
-  hasAccessToCompany: (userEmail, companyId) => {
-    const config = getCompanyConfig(companyId);
-    if (!config) return false;
-    if (config.testCredentials?.email === userEmail) return true;
-    return false;
   }
 };
 
-// ==================== EXPORT FOR GLOBAL ACCESS ====================
+// ==================== GLOBAL EXPORTS ====================
 window.CONFIG_KEYS = CONFIG_KEYS;
 window.state = state;
 window.elements = elements;
@@ -398,18 +271,19 @@ window.FIREBASE_CONFIG = FIREBASE_CONFIG;
 window.UPLOAD_CONFIG = UPLOAD_CONFIG;
 window.APPS_SCRIPT_CONFIG = APPS_SCRIPT_CONFIG;
 window.ConfigHelper = ConfigHelper;
-
-// ★ EXPORT MULTI-COMPANY
 window.COMPANY_CONFIG = COMPANY_CONFIG;
 window.COMPANY_IDS = COMPANY_IDS;
 window.getCompanyConfig = getCompanyConfig;
 window.getCurrentCompanyConfig = getCurrentCompanyConfig;
+window.getCurrentUser = getCurrentUser;
+window.isLoggedIn = isLoggedIn;
+window.getActiveCompanyId = getActiveCompanyId;
 window.setCurrentCompany = setCurrentCompany;
 window.clearCurrentCompany = clearCurrentCompany;
 window.initializeCompanySession = initializeCompanySession;
-window.getCollectionName = getCollectionName;  // ← ★ PENTING!
+window.getCollectionName = getCollectionName;
 
-// Auto-initialize company session
+// Auto-init session
 initializeCompanySession();
 
-console.log('%c📁 config.js v3.5 loaded | Collections: Invoice-NMSA, Invoice-IPN', 'color:#34a85c;');
+console.log('%c config.js loaded | Project: ' + FIREBASE_CONFIG.projectId + ' | Drive: ' + (APPS_SCRIPT_CONFIG.isConfigured() ? 'OK' : 'MISSING'), 'color:#34a85c;');
