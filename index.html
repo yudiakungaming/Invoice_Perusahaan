@@ -117,6 +117,22 @@
     .tab-item.on{background:var(--accent);color:#fff}
     .h-item{padding:14px;background:rgba(10,15,26,.4);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:all .2s}
     .h-item:hover{border-color:rgba(99,102,241,.35);transform:translateX(3px)}
+    .h-item-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .2s}
+    .h-item:hover .h-item-actions{opacity:1}
+    @media(max-width:768px){.h-item-actions{opacity:1}}
+    .h-action-btn{min-width:30px;height:30px;border:none;border-radius:7px;background:rgba(255,255,255,.05);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0 6px;color:var(--muted)}
+    .h-action-btn:hover{transform:scale(1.08)}
+    .h-action-edit:hover{background:rgba(99,102,241,.15);color:#818cf8}
+    .h-action-del:hover{background:rgba(239,68,68,.15);color:#f87171}
+    .h-action-view:hover{background:rgba(16,185,129,.15);color:#34d399}
+    .h-del-confirm{margin-top:10px;padding:10px 12px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);border-radius:8px;animation:fadeInUp .2s ease-out}
+    .h-del-confirm-text{font-size:11px;color:#fca5a5;margin-bottom:8px;line-height:1.5}
+    .h-del-confirm-btns{display:flex;gap:6px}
+    .h-del-btn-yes{padding:5px 14px;border:none;border-radius:6px;background:rgba(239,68,68,.2);color:#f87171;font-size:11px;font-weight:600;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s}
+    .h-del-btn-yes:hover{background:rgba(239,68,68,.35)}
+    .h-del-btn-no{padding:5px 14px;border:none;border-radius:6px;background:rgba(255,255,255,.06);color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s}
+    .h-del-btn-no:hover{background:rgba(255,255,255,.1);color:var(--fg)}
+    .edit-banner{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:10px;margin-bottom:16px;animation:fadeInUp .25s ease-out}
     .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(10,15,26,.3);position:relative}
     .upload-zone:hover{border-color:var(--accent);background:rgba(99,102,241,.04)}
     .upload-zone.dragging{border-color:var(--accent)!important;background:rgba(99,102,241,.08)!important}
@@ -278,6 +294,19 @@
                   <p class="text-xs text-[--muted]" id="fSub">Simpan ke Firebase → File ke Google Drive</p>
                 </div>
               </div>
+
+              <!-- Banner mode edit -->
+              <div id="editBanner" class="edit-banner" style="display:none">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:15px">✏️</span>
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:#818cf8">Mode Edit Aktif</div>
+                    <div style="font-size:10px;color:#64748b" id="editBannerInfo">Mengedit: -</div>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-outline" style="padding:5px 12px;font-size:11px" onclick="cancelEdit()">✕ Batal</button>
+              </div>
+
               <form id="mainForm" class="space-y-4">
                 <div class="grid md:grid-cols-2 gap-3">
                   <div><label class="field-label">Tanggal Invoice<span class="required-star">*</span></label><input type="date" id="fTgl" class="input-field" required></div>
@@ -412,6 +441,11 @@
 
   <script>
   var itemCnt = 0;
+  var editingDocId = null;
+
+  /* ══════════════════════════════════════════
+     AUTH & SCREENS
+     ══════════════════════════════════════════ */
 
   function showDashboard() {
     document.getElementById('scrLogin').style.display = 'none';
@@ -486,6 +520,10 @@
 
   async function doLogout() { await logoutUser(); }
 
+  /* ══════════════════════════════════════════
+     FORM ITEMS
+     ══════════════════════════════════════════ */
+
   function addFormItem(d) {
     d = d || {}; itemCnt++; var n = itemCnt;
     document.getElementById('itemsBox').insertAdjacentHTML('beforeend',
@@ -503,6 +541,22 @@
 
   function rmItem(n) { var el = document.getElementById('it-' + n); if (el) { el.remove(); calcTotal(); } }
 
+  function toggleTglBayar(status) {
+    var c = document.getElementById('fTglBayarContainer');
+    if (!c) return;
+    c.style.display = (status === 'Lunas') ? 'block' : 'none';
+    if (status !== 'Lunas') document.getElementById('fTglBayar').value = '';
+  }
+
+  /* listener status change — tampilkan/sembunyikan tgl bayar */
+  document.getElementById('fStatus').addEventListener('change', function() {
+    toggleTglBayar(this.value);
+  });
+
+  /* ══════════════════════════════════════════
+     UPLOAD PROGRESS
+     ══════════════════════════════════════════ */
+
   function showUploadProgress(percent) {
     var wrap = document.getElementById('upBarWrap');
     var fill = document.getElementById('upBarFill');
@@ -517,12 +571,20 @@
     setTimeout(function() { if (wrap) wrap.style.display = 'none'; }, 800);
   }
 
+  /* ══════════════════════════════════════════
+     TABS
+     ══════════════════════════════════════════ */
+
   function switchTab(t, btn) {
     document.querySelectorAll('.tab-item').forEach(function(b) { b.classList.remove('on'); });
     if (btn) btn.classList.add('on');
     state.currentTab = t;
     renderHistory();
   }
+
+  /* ══════════════════════════════════════════
+     COLLECT FORM DATA
+     ══════════════════════════════════════════ */
 
   function collectFormData() {
     var items = [];
@@ -545,6 +607,282 @@
       items: items, total_nominal: calcTotal()
     };
   }
+
+  /* ══════════════════════════════════════════
+     RENDER RIWAYAT TRANSAKSI
+     (override fungsi dari firestore-db.js)
+     ══════════════════════════════════════════ */
+
+  window.renderHistory = function() {
+    var box = document.getElementById('hList');
+    if (!box || !window.state || !state.history) return;
+
+    var tab = state.currentTab || 'Lunas';
+    var filtered = state.history;
+
+    if (tab === 'Lunas') {
+      filtered = state.history.filter(function(d) { return d.status === 'Lunas'; });
+    } else if (tab === 'Belum Lunas') {
+      filtered = state.history.filter(function(d) { return d.status === 'Belum Lunas'; });
+    }
+
+    if (!filtered.length) {
+      box.innerHTML = '<div class="text-center py-12 text-[--muted]"><div class="text-4xl mb-2">📋</div><p class="text-xs">Tidak ada data untuk tab ini</p></div>';
+      return;
+    }
+
+    /* urutkan terbaru di atas */
+    filtered = filtered.slice().sort(function(a, b) {
+      var ta = a.created_at || a.tanggal || '';
+      var tb = b.created_at || b.tanggal || '';
+      return tb.localeCompare(ta);
+    });
+
+    var html = '';
+    filtered.forEach(function(d) {
+      var id = d.id;
+      var tgl = formatDate(d.tanggal);
+      var kode = escapeHtml(d.kode || d.no_invoice || '-');
+      var jenis = escapeHtml((d.jenis_pengajuan || '-').substring(0, 30));
+      var total = formatCurrency(d.total_nominal || d.grandTotal || 0);
+      var bayar = escapeHtml((d.dibayarkan_kepada || '-').substring(0, 28));
+      var isLunas = d.status === 'Lunas';
+      var sClr = isLunas ? '#34d399' : '#fbbf24';
+      var sBg = isLunas ? 'rgba(34,197,94,.1)' : 'rgba(245,158,11,.1)';
+      var hasDrive = d.google_drive_links && d.google_drive_links.length > 0;
+      var safeKode = kode.replace(/'/g, "\\'");
+
+      html +=
+        '<div class="h-item" id="hi-' + id + '">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">' +
+            /* area klik untuk preview */
+            '<div style="flex:1;min-width:0" onclick="viewItem(\'' + id + '\')">' +
+              '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap">' +
+                '<span style="font-size:13px;font-weight:700;color:#e2e8f0">' + kode + '</span>' +
+                '<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:' + sBg + ';color:' + sClr + ';font-weight:700">' + escapeHtml(d.status || '-') + '</span>' +
+                (hasDrive ? '<span style="font-size:9px;padding:2px 6px;border-radius:8px;background:rgba(16,185,129,.1);color:#34d399;font-weight:600">📎 File</span>' : '') +
+              '</div>' +
+              '<div style="font-size:11px;color:#64748b;margin-bottom:2px">' + tgl + ' · ' + jenis + '</div>' +
+              '<div style="font-size:12px;font-weight:600;color:#cbd5e1;font-family:JetBrains Mono,monospace">' + total + '</div>' +
+              '<div style="font-size:10px;color:#4b5563;margin-top:3px">Kepada: ' + bayar + '</div>' +
+            '</div>' +
+            /* tombol aksi */
+            '<div class="h-item-actions">' +
+              '<button class="h-action-btn h-action-view" onclick="event.stopPropagation();viewItem(\'' + id + '\')" title="Lihat Dokumen">👁️</button>' +
+              '<button class="h-action-btn h-action-edit" onclick="event.stopPropagation();editItem(\'' + id + '\')" title="Edit Data">✏️</button>' +
+              '<button class="h-action-btn h-action-del" onclick="event.stopPropagation();requestDelete(\'' + id + '\',\'' + safeKode + '\')" title="Hapus Data">🗑️</button>' +
+            '</div>' +
+          '</div>' +
+          /* area konfirmasi hapus (tersembunyi) */
+          '<div class="h-del-confirm" id="dc-' + id + '" style="display:none">' +
+            '<div class="h-del-confirm-text">Hapus <strong>' + kode + '</strong> secara permanen? Data yang sudah dihapus tidak bisa dikembalikan.</div>' +
+            '<div class="h-del-confirm-btns">' +
+              '<button class="h-del-btn-yes" onclick="event.stopPropagation();executeDelete(\'' + id + '\')">Ya, Hapus</button>' +
+              '<button class="h-del-btn-no" onclick="event.stopPropagation();cancelDelete(\'' + id + '\')">Batal</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    });
+
+    box.innerHTML = html;
+  };
+
+  /* ══════════════════════════════════════════
+     EDIT DATA
+     ══════════════════════════════════════════ */
+
+  function editItem(id) {
+    var item = null;
+    if (state && state.history) {
+      for (var i = 0; i < state.history.length; i++) {
+        if (state.history[i].id === id) { item = state.history[i]; break; }
+      }
+    }
+    if (!item) return showToast('Data tidak ditemukan', 'error');
+
+    editingDocId = id;
+    populateFormForEdit(item);
+
+    /* ubah tombol submit jadi mode update */
+    var subBtn = document.getElementById('subBtn');
+    subBtn.type = 'button';
+    subBtn.className = 'btn btn-success';
+    subBtn.innerHTML = '✏️ Update Data';
+    subBtn.onclick = doUpdate;
+
+    /* tampilkan banner edit */
+    var banner = document.getElementById('editBanner');
+    var info = document.getElementById('editBannerInfo');
+    if (banner) banner.style.display = 'flex';
+    if (info) info.textContent = 'Mengedit: ' + (item.kode || item.no_invoice || id);
+
+    /* scroll ke form */
+    document.getElementById('mainForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    showToast('Mode edit aktif — ubah data lalu klik "Update Data"', 'info');
+  }
+
+  function populateFormForEdit(d) {
+    document.getElementById('fTgl').value = d.tanggal || '';
+    document.getElementById('fLokasi').value = d.lokasi || '';
+    document.getElementById('fJenis').value = d.jenis_pengajuan || '';
+    document.getElementById('fKode').value = d.kode || '';
+    document.getElementById('fNoInv').value = d.no_invoice || '';
+    document.getElementById('fStatus').value = d.status || '';
+    document.getElementById('fBayar').value = d.dibayarkan_kepada || '';
+    document.getElementById('fTglBayar').value = d.tanggal_pembayaran || '';
+    document.getElementById('fCatatan').value = d.catatan_tambahan || '';
+
+    /* toggle tgl bayar */
+    toggleTglBayar(d.status || '');
+
+    /* isi item rows */
+    var itemsBox = document.getElementById('itemsBox');
+    itemsBox.innerHTML = '';
+    itemCnt = 0;
+    var items = d.items || [];
+    if (items.length) {
+      items.forEach(function(it) { addFormItem(it); });
+    } else {
+      addFormItem();
+    }
+    calcTotal();
+  }
+
+  function cancelEdit() {
+    editingDocId = null;
+
+    /* kembalikan tombol submit ke mode simpan baru */
+    var subBtn = document.getElementById('subBtn');
+    subBtn.type = 'submit';
+    subBtn.className = 'btn btn-primary';
+    subBtn.innerHTML = '<span>Simpan ke Firebase</span>';
+    subBtn.onclick = null;
+
+    /* sembunyikan banner edit */
+    var banner = document.getElementById('editBanner');
+    if (banner) banner.style.display = 'none';
+
+    /* reset form */
+    if (typeof resetForm === 'function') {
+      var origEditId = editingDocId;
+      editingDocId = null;
+      resetForm();
+    }
+  }
+
+  async function doUpdate() {
+    if (!editingDocId) return;
+
+    var data = collectFormData();
+    if (!data.kode) return showToast('Kode wajib diisi', 'warning');
+    if (!data.items.length) return showToast('Tambahkan minimal 1 item', 'warning');
+
+    var cfg = getCurrentCompanyConfig();
+    if (!cfg || !cfg.collection) return showToast('Konfigurasi perusahaan tidak valid', 'error');
+
+    var btn = document.getElementById('subBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+
+    try {
+      var docRef = firebase.firestore().collection(cfg.collection).doc(editingDocId);
+      await docRef.update(data);
+
+      /* update local state */
+      if (state && state.history) {
+        for (var i = 0; i < state.history.length; i++) {
+          if (state.history[i].id === editingDocId) {
+            for (var k in data) state.history[i][k] = data[k];
+            break;
+          }
+        }
+      }
+
+      cancelEdit();
+      renderHistory();
+      if (typeof updateStats === 'function') updateStats();
+      showToast('Data berhasil diperbarui', 'success');
+
+    } catch (e) {
+      console.error('Update gagal:', e);
+      showToast('Gagal update: ' + e.message, 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '✏️ Update Data';
+  }
+
+  /* ══════════════════════════════════════════
+     HAPUS DATA
+     ══════════════════════════════════════════ */
+
+  function requestDelete(id, kode) {
+    /* tutup konfirmasi lain yang mungkin terbuka */
+    document.querySelectorAll('.h-del-confirm').forEach(function(el) {
+      el.style.display = 'none';
+    });
+    /* buka konfirmasi untuk item ini */
+    var dc = document.getElementById('dc-' + id);
+    if (dc) dc.style.display = 'block';
+  }
+
+  function cancelDelete(id) {
+    var dc = document.getElementById('dc-' + id);
+    if (dc) dc.style.display = 'none';
+  }
+
+  async function executeDelete(id) {
+    var cfg = getCurrentCompanyConfig();
+    if (!cfg || !cfg.collection) return showToast('Konfigurasi perusahaan tidak valid', 'error');
+
+    var dc = document.getElementById('dc-' + id);
+    if (dc) dc.innerHTML = '<div style="font-size:11px;color:#fbbf24"><span class="spinner"></span> Menghapus...</div>';
+
+    try {
+      await firebase.firestore().collection(cfg.collection).doc(id).delete();
+
+      /* hapus dari local state */
+      if (state && state.history) {
+        state.history = state.history.filter(function(d) { return d.id !== id; });
+      }
+
+      /* jika sedang diedit, batal edit */
+      if (editingDocId === id) cancelEdit();
+
+      renderHistory();
+      if (typeof updateStats === 'function') updateStats();
+      showToast('Data berhasil dihapus', 'success');
+
+    } catch (e) {
+      console.error('Hapus gagal:', e);
+      showToast('Gagal menghapus: ' + e.message, 'error');
+
+      /* kembalikan tombol konfirmasi */
+      if (dc) {
+        dc.innerHTML =
+          '<div class="h-del-confirm-text">Gagal menghapus. Coba lagi?</div>' +
+          '<div class="h-del-confirm-btns">' +
+            '<button class="h-del-btn-yes" onclick="event.stopPropagation();executeDelete(\'' + id + '\')">Coba Lagi</button>' +
+            '<button class="h-del-btn-no" onclick="event.stopPropagation();cancelDelete(\'' + id + '\')">Batal</button>' +
+          '</div>';
+      }
+    }
+  }
+
+  /* ══════════════════════════════════════════
+     OVERRIDE RESET FORM — pastikan keluar dari mode edit
+     ══════════════════════════════════════════ */
+
+  var _origResetForm = window.resetForm;
+  window.resetForm = function() {
+    if (editingDocId) cancelEdit();
+    if (typeof _origResetForm === 'function') _origResetForm();
+  };
+
+  /* ══════════════════════════════════════════
+     DOKUMEN / PREVIEW / PDF
+     ══════════════════════════════════════════ */
 
   function getSignatures(data) {
     if (data.dibuat_oleh) return data;
@@ -601,7 +939,12 @@
   }
 
   function viewItem(id) {
-    var it = state.history.find(function(d) { return d.id === id; });
+    var it = null;
+    if (state && state.history) {
+      for (var i = 0; i < state.history.length; i++) {
+        if (state.history[i].id === id) { it = state.history[i]; break; }
+      }
+    }
     if (!it) return;
     var modal = document.getElementById('documentModal');
     var body = document.getElementById('docBody');
@@ -627,15 +970,24 @@
     .catch(function(e) { console.error(e); showToast('Gagal membuat PDF', 'error'); });
   }
 
+  /* ══════════════════════════════════════════
+     STATS OVERRIDE
+     ══════════════════════════════════════════ */
+
   var _origUpdateStats = window.updateStats;
   window.updateStats = function() {
     if (_origUpdateStats) _origUpdateStats();
-    var lunas = 0;
+    var lunas = 0, pending = 0;
     if (state.history && state.history.length) {
-      lunas = state.history.filter(function(d) { return d.status === 'Lunas'; }).length;
+      state.history.forEach(function(d) {
+        if (d.status === 'Lunas') lunas++;
+        else if (d.status === 'Belum Lunas') pending++;
+      });
     }
-    var el = document.getElementById('lunasData');
-    if (el) el.textContent = lunas;
+    var elL = document.getElementById('lunasData');
+    var elP = document.getElementById('pendingData');
+    if (elL) elL.textContent = lunas;
+    if (elP) elP.textContent = pending;
   };
   </script>
 </body>
