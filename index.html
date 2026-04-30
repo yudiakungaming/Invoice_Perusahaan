@@ -13,7 +13,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* ── Background Effects (tidak ada di style.css) ── */
     .bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;
       background:radial-gradient(ellipse 600px 400px at 15% 20%,rgba(99,102,241,.07),transparent),
       radial-gradient(ellipse 500px 500px at 85% 80%,rgba(16,185,129,.05),transparent),
@@ -21,29 +20,17 @@
     .bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.03;
       background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
       background-size:60px 60px}
-
-    /* ── Card Glow Variant ── */
     .card-glow{box-shadow:0 0 40px rgba(99,102,241,.06)}
-
-    /* ── Modal (tidak ada di style.css) ── */
     .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:9000}
     .modal-bg.hidden{display:none!important}
     .modal-box{background:linear-gradient(145deg,var(--bg2),var(--bg));border:1px solid var(--border);border-radius:20px;padding:32px;max-width:700px;width:92%;max-height:88vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.6)}
     .modal-content{max-height:none;overflow:visible}
-
-    /* ── Spinner ── */
     .spinner{width:15px;height:15px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
-
-    /* ── Document File Links (tidak ada di style.css) ── */
     .doc-file-box{margin-top:14px;padding:12px;background:#eff6ff;border-left:4px solid #3b82f6;border-radius:4px}
     .doc-file-h{font-weight:700;font-size:11px;color:#1e40af;margin-bottom:6px}
     .doc-file-link{font-size:11px;margin:3px 0;display:block}
     .doc-file-link a{color:#2563eb;text-decoration:underline}
-
-    /* ── Select Arrow Fix ── */
     select.input-field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a8baa' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
-
-    /* ── Responsive (tambahan style.css) ── */
     @media(max-width:768px){
       .comp-grid{grid-template-columns:1fr}
       .login-box{padding:28px 22px}
@@ -58,7 +45,7 @@
 
   <main class="relative z-10 min-h-screen">
 
-    <!-- ═══ HEADER ═══ -->
+    <!-- HEADER -->
     <header class="border-b border-[--border] bg-[--bg]/85 backdrop-blur-xl sticky top-0 z-50 no-print">
       <div class="max-w-6xl mx-auto px-5 py-3">
         <div class="flex items-center justify-between flex-wrap gap-3">
@@ -82,7 +69,7 @@
       </div>
     </header>
 
-    <!-- ═══ LOGIN SCREEN ═══ -->
+    <!-- LOGIN SCREEN -->
     <div id="scrLogin" class="login-wrap no-print">
       <div class="login-box">
         <h2>FinanceSync Pro</h2>
@@ -113,11 +100,31 @@
       </div>
     </div>
 
-    <!-- ═══ DASHBOARD ═══ -->
+    <!-- DASHBOARD -->
     <div id="scrDash" style="display:none">
       <div class="max-w-6xl mx-auto px-5 py-7">
 
-        <!-- Stats — IDs harus match utils.js updateStats() -->
+        <!-- ═══════════════════════════════════════════════
+             MIGRASI BUTTON — HAPUS BLOK INI SETELAH SELESAI
+             ═══════════════════════════════════════════════ -->
+        <div id="migrasiBox" class="mb-5 no-print">
+          <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:16px 20px">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+              <span style="font-size:24px">🔄</span>
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:13px;font-weight:700;color:#fbbf24">Migrasi Data: submissions → Invoice-NMSA / Invoice-IPN</div>
+                <div style="font-size:11px;color:#94a3b8">Pindahkan semua data lama ke collection baru sesuai company</div>
+              </div>
+              <button onclick="jalankanMigrasi()" id="btnMigrasi" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;box-shadow:0 4px 15px rgba(245,158,11,.3)">Mulai Migrasi</button>
+            </div>
+            <div id="migrasiLog" style="width:100%;margin-top:10px;display:none;background:rgba(10,15,26,.6);border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;max-height:220px;overflow-y:auto;color:#94a3b8"></div>
+          </div>
+        </div>
+        <!-- ═══════════════════════════════════════════════
+             AKHIR MIGRASI BUTTON
+             ═══════════════════════════════════════════════ -->
+
+        <!-- Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-7 no-print">
           <div class="card card-glow animate-in delay-1">
             <div class="text-[10px] text-[--muted] uppercase tracking-wider mb-1">Total Data</div>
@@ -163,8 +170,6 @@
                   <div><label class="field-label">No Invoice / Berkas</label><input type="text" id="fNoInv" class="input-field mono" placeholder="(opsional / auto)"></div>
                   <div><label class="field-label">Status Pembayaran<span class="required-star">*</span></label><select id="fStatus" class="input-field" required><option value="">Pilih status</option><option value="Lunas">Lunas</option><option value="Belum Lunas">Belum Lunas</option></select></div>
                 </div>
-
-                <!-- Items -->
                 <div>
                   <div class="flex justify-between items-center mb-2">
                     <label class="field-label">Rincian Barang / Jasa<span class="required-star">*</span></label>
@@ -173,15 +178,11 @@
                   <div id="itemsBox" class="space-y-2"></div>
                   <button type="button" onclick="addFormItem()" class="btn-add mt-2">+ Tambah Item</button>
                 </div>
-
                 <div class="grid md:grid-cols-2 gap-3">
                   <div><label class="field-label">Total Nominal (Otomatis)</label><div class="currency-wrapper"><span class="prefix">Rp</span><input type="text" id="fTotal" class="input-field mono" readonly placeholder="0"></div></div>
                   <div id="fTglBayarContainer" style="display:none"><label class="field-label">Tanggal Pembayaran</label><input type="date" id="fTglBayar" class="input-field"></div>
                 </div>
-
                 <div><label class="field-label">Dibayarkan Kepada<span class="required-star">*</span></label><input type="text" id="fBayar" class="input-field" placeholder="Nama penerima pembayaran" required></div>
-
-                <!-- Upload — handlers dari app.js -->
                 <div>
                   <div class="flex items-center justify-between mb-2">
                     <label class="field-label">Upload Bukti Dokumen</label>
@@ -200,9 +201,7 @@
                     <button type="button" onclick="clearFiles()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors">Hapus Semua</button>
                   </div>
                 </div>
-
                 <div><label class="field-label">Catatan Tambahan <span class="text-[--muted] font-normal lowercase">(opsional)</span></label><textarea id="fCatatan" class="input-field resize-none" rows="2" placeholder="Tambahkan catatan..."></textarea></div>
-
                 <div class="flex flex-wrap items-center gap-3 pt-3">
                   <button type="submit" class="btn btn-primary" id="subBtn"><span>Simpan ke Firebase</span></button>
                   <button type="button" class="btn btn-ghost" onclick="previewDoc()">Preview & PDF</button>
@@ -234,7 +233,7 @@
     </div>
   </main>
 
-  <!-- ═══ DOCUMENT MODAL — id="documentModal" agar print CSS di style.css berfungsi ═══ -->
+  <!-- DOCUMENT MODAL -->
   <div id="documentModal" class="modal-bg hidden">
     <div class="modal-content modal-box" style="max-width:900px">
       <div class="page-toolbar flex items-center justify-between pb-3 mb-3 border-b border-gray-200 no-print bg-white -mx-8 -mt-8 pt-5 px-8 rounded-t-xl">
@@ -248,13 +247,10 @@
     </div>
   </div>
 
-  <!-- TOASTS — id="toastBox" agar utils.js showToast() berfungsi -->
+  <!-- TOASTS -->
   <div id="toastBox" class="toast-container"></div>
 
-  <!-- ══════════════════════════════════════════════════════════════
-       EXTERNAL SCRIPTS — urutan sesuai dependency chain
-       config → utils → firebase-init → firestore-db → drive-sync → app
-       ══════════════════════════════════════════════════════════════ -->
+  <!-- EXTERNAL SCRIPTS -->
   <script src="config.js"></script>
   <script src="utils.js"></script>
   <script src="firebase-init.js"></script>
@@ -262,34 +258,21 @@
   <script src="drive-sync.js"></script>
   <script src="app.js"></script>
 
-  <!-- ══════════════════════════════════════════════════════════════
-       INLINE: Fungsi UI yang DIPANGGIL oleh external JS
-       (app.js, firebase-init.js, utils.js memanggil fungsi-fungsi ini)
-       ══════════════════════════════════════════════════════════════ -->
+  <!-- INLINE UI FUNCTIONS -->
   <script>
-  /* ═══════════════════════════════════════════════════
-     GLOBAL COUNTER untuk item rows (dipakai app.js resetForm)
-     ═══════════════════════════════════════════════════ */
   var itemCnt = 0;
 
-  /* ═══════════════════════════════════════════════════
-     SCREEN SWITCHING — dipanggil app.js onAuthStateChanged
-     ═══════════════════════════════════════════════════ */
   function showDashboard() {
     document.getElementById('scrLogin').style.display = 'none';
     document.getElementById('scrDash').style.display = 'block';
     document.getElementById('hdrAuth').style.display = 'flex';
-
     var cfg = getCurrentCompanyConfig();
     if (cfg) {
       var badge = document.getElementById('hdrBadge');
       badge.className = 'comp-badge ' + cfg.id;
       badge.innerHTML = '<span>' + cfg.branding.icon + '</span>' + cfg.code;
-
       var sub = document.getElementById('fSub');
       if (sub) sub.textContent = 'Simpan ke ' + cfg.name + ' → Firebase → Drive';
-
-      /* Terapkan default values dari company config */
       var defaults = ConfigHelper.getDefaultsForCompany(cfg.id);
       var elLokasi = document.getElementById('fLokasi');
       var elKode = document.getElementById('fKode');
@@ -298,11 +281,8 @@
       if (defaults.kode && elKode && !elKode.value) elKode.value = defaults.kode;
       if (defaults.jenis_pengajuan && elJenis && !elJenis.value) elJenis.value = defaults.jenis_pengajuan;
     }
-
     var user = getCurrentUser();
-    if (user) {
-      document.getElementById('hdrEmail').textContent = user.email;
-    }
+    if (user) document.getElementById('hdrEmail').textContent = user.email;
   }
 
   function showLoginScreen() {
@@ -312,15 +292,11 @@
     document.querySelectorAll('.comp-card').forEach(function(e) { e.classList.remove('picked'); });
   }
 
-  /* Dipanggil app.js keyboard handler (Escape saat login) */
   function hideLoginModal() {
     var err = document.getElementById('lErr');
     if (err) { err.classList.remove('show'); err.textContent = ''; }
   }
 
-  /* ═══════════════════════════════════════════════════
-     STATUS INDICATOR — dipanggil firebase-init.js updateStatus()
-     ═══════════════════════════════════════════════════ */
   function updateStatus(cls, msg) {
     var dot = document.getElementById('sDot');
     var text = document.getElementById('sText');
@@ -328,9 +304,6 @@
     if (text) text.textContent = msg;
   }
 
-  /* ═══════════════════════════════════════════════════
-     COMPANY SELECTION — dipanggil dari login UI onclick
-     ═══════════════════════════════════════════════════ */
   function pickComp(id) {
     setCurrentCompany(id);
     document.querySelectorAll('.comp-card').forEach(function(e) { e.classList.remove('picked'); });
@@ -338,10 +311,6 @@
     if (el) el.classList.add('picked');
   }
 
-  /* ═══════════════════════════════════════════════════
-     AUTH — dipanggil dari login UI onclick
-     Menggunakan loginUser() dari firebase-init.js
-     ═══════════════════════════════════════════════════ */
   function showLoginError(msg) {
     var el = document.getElementById('lErr');
     if (el) { el.textContent = msg; el.classList.add('show'); }
@@ -351,64 +320,37 @@
     var em = document.getElementById('lEmail').value.trim();
     var pw = document.getElementById('lPass').value;
     var btn = document.getElementById('lBtn');
-
     showLoginError('');
     if (!em || !pw) return showLoginError('Email dan password wajib diisi');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return showLoginError('Format email tidak valid');
     if (!getActiveCompanyId()) return showLoginError('Pilih perusahaan terlebih dahulu');
-
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Memproses...';
-
     var result = await loginUser(em, pw);
-
-    if (!result.success) {
-      showLoginError(result.error);
-    }
-
+    if (!result.success) showLoginError(result.error);
     btn.disabled = false;
     btn.innerHTML = 'Masuk ke Dashboard';
   }
 
-  /* Menggunakan logoutUser() dari firebase-init.js */
-  async function doLogout() {
-    await logoutUser();
-  }
+  async function doLogout() { await logoutUser(); }
 
-  /* ═══════════════════════════════════════════════════
-     FORM ITEMS — dipanggil app.js init() & resetForm()
-     ═══════════════════════════════════════════════════ */
   function addFormItem(d) {
-    d = d || {};
-    itemCnt++;
-    var n = itemCnt;
-    var html = '<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="it-' + n + '">' +
+    d = d || {}; itemCnt++; var n = itemCnt;
+    document.getElementById('itemsBox').insertAdjacentHTML('beforeend',
+      '<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="it-' + n + '">' +
       '<div class="col-span-5"><input type="text" name="in_' + n + '" class="input-field text-sm" placeholder="Nama barang/jasa" value="' + escapeHtml(d.ket || d.name || '') + '"></div>' +
       '<div class="col-span-2"><input type="number" name="iq_' + n + '" class="input-field text-sm text-center" placeholder="Qty" value="' + (d.qty || 1) + '" min="1"></div>' +
       '<div class="col-span-3"><input type="number" name="ip_' + n + '" class="input-field text-sm mono" placeholder="Harga" value="' + (d.nominal || d.price || '') + '" min="0"></div>' +
       '<div class="col-span-2 flex items-center justify-end gap-1">' +
         '<span class="text-[10px] font-mono text-[--muted]" id="sub-' + n + '">Rp 0</span>' +
         (n > 1 ? '<button type="button" onclick="rmItem(' + n + ')" class="w-6 h-6 rounded bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs flex items-center justify-center transition-colors">×</button>' : '') +
-      '</div>' +
-    '</div>';
-
-    document.getElementById('itemsBox').insertAdjacentHTML('beforeend', html);
-
-    /* Pasang listener agar calcTotal (dari app.js) terpicu */
+      '</div></div>');
     var row = document.getElementById('it-' + n);
-    row.querySelectorAll('input').forEach(function(inp) {
-      inp.addEventListener('input', calcTotal);
-    });
+    row.querySelectorAll('input').forEach(function(inp) { inp.addEventListener('input', calcTotal); });
   }
 
-  function rmItem(n) {
-    var el = document.getElementById('it-' + n);
-    if (el) { el.remove(); calcTotal(); }
-  }
+  function rmItem(n) { var el = document.getElementById('it-' + n); if (el) { el.remove(); calcTotal(); } }
 
-  /* ═══════════════════════════════════════════════════
-     UPLOAD PROGRESS — dipanggil utils.js updateUploadProgress()
-     ═══════════════════════════════════════════════════ */
   function showUploadProgress(percent) {
     var wrap = document.getElementById('upBarWrap');
     var fill = document.getElementById('upBarFill');
@@ -423,10 +365,6 @@
     setTimeout(function() { if (wrap) wrap.style.display = 'none'; }, 800);
   }
 
-  /* ═══════════════════════════════════════════════════
-     TABS — dipanggil dari history UI onclick
-     Menggunakan state.currentTab (dibaca app.js renderHistory)
-     ═══════════════════════════════════════════════════ */
   function switchTab(t, btn) {
     document.querySelectorAll('.tab-item').forEach(function(b) { b.classList.remove('on'); });
     if (btn) btn.classList.add('on');
@@ -434,9 +372,6 @@
     renderHistory();
   }
 
-  /* ═══════════════════════════════════════════════════
-     DOCUMENT PREVIEW & PDF
-     ═══════════════════════════════════════════════════ */
   function collectFormData() {
     var items = [];
     document.querySelectorAll('.item-row').forEach(function(row) {
@@ -455,12 +390,10 @@
       dibayarkan_kepada: document.getElementById('fBayar')?.value?.trim() || '',
       tanggal_pembayaran: document.getElementById('fTglBayar')?.value || '',
       catatan_tambahan: document.getElementById('fCatatan')?.value?.trim() || '',
-      items: items,
-      total_nominal: calcTotal()
+      items: items, total_nominal: calcTotal()
     };
   }
 
-  /* Ambil signature: dari data history jika ada, fallback ke company default */
   function getSignatures(data) {
     if (data.dibuat_oleh) return data;
     var sigs = ConfigHelper.getSignaturesForCompany(getActiveCompanyId());
@@ -474,28 +407,15 @@
     d = getSignatures(d);
     var items = d.items || [];
     var cfg = getCurrentCompanyConfig();
-
     var rows = items.map(function(it, i) {
       var qty = parseFloat(it.qty) || 1;
       var price = it.nominal || it.price || 0;
-      return '<tr>' +
-        '<td style="text-align:center">' + (i + 1) + '</td>' +
-        '<td>' + escapeHtml(it.ket || it.name || '') + '</td>' +
-        '<td style="text-align:center">' + qty + '</td>' +
-        '<td style="text-align:right">' + formatCurrency(price) + '</td>' +
-        '<td style="text-align:right">' + formatCurrency(qty * price) + '</td>' +
-        '<td>' + escapeHtml(it.keterangan || '-') + '</td>' +
-      '</tr>';
+      return '<tr><td style="text-align:center">' + (i + 1) + '</td><td>' + escapeHtml(it.ket || it.name || '') + '</td><td style="text-align:center">' + qty + '</td><td style="text-align:right">' + formatCurrency(price) + '</td><td style="text-align:right">' + formatCurrency(qty * price) + '</td><td>' + escapeHtml(it.keterangan || '-') + '</td></tr>';
     }).join('');
-
     var tot = d.total_nominal || d.grandTotal || 0;
     var links = d.google_drive_links || [];
-
     return '<div class="document-page">' +
-      '<div class="doc-head">' +
-        '<div class="doc-title">FORMULIR PENGAJUAN HO</div>' +
-        (cfg ? '<div class="doc-company" style="color:' + cfg.branding.primaryColor + '">' + cfg.name + '</div>' : '') +
-      '</div>' +
+      '<div class="doc-head"><div class="doc-title">FORMULIR PENGAJUAN HO</div>' + (cfg ? '<div class="doc-company" style="color:' + cfg.branding.primaryColor + '">' + cfg.name + '</div>' : '') + '</div>' +
       '<div class="doc-grid">' +
         '<div class="doc-row"><span class="doc-lbl">Lokasi</span><span class="doc-val">' + escapeHtml(d.lokasi || '-') + '</span></div>' +
         '<div class="doc-row"><span class="doc-lbl">Tanggal</span><span class="doc-val">' + formatDate(d.tanggal) + '</span></div>' +
@@ -505,18 +425,9 @@
         '<div class="doc-row"><span class="doc-lbl">Status</span><span class="doc-val"><strong>' + (d.status || '-') + '</strong></span></div>' +
         '<div class="doc-row" style="grid-column:span 2"><span class="doc-lbl">Dibayarkan Kepada</span><span class="doc-val">' + escapeHtml(d.dibayarkan_kepada || '-') + '</span></div>' +
       '</div>' +
-      '<table class="doc-tbl">' +
-        '<thead><tr>' +
-          '<th style="width:35px;text-align:center">No</th>' +
-          '<th>Uraian</th>' +
-          '<th style="width:45px;text-align:center">Qty</th>' +
-          '<th style="width:130px;text-align:right">Harga Satuan</th>' +
-          '<th style="width:130px;text-align:right">Jumlah</th>' +
-          '<th>Keterangan</th>' +
-        '</tr></thead>' +
-        '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;padding:18px;color:#94a3b8">Tidak ada item</td></tr>') + '</tbody>' +
-        '<tfoot><tr class="doc-total"><td colspan="4" style="text-align:right;font-size:12px">GRAND TOTAL</td><td style="text-align:right;font-size:13px">' + formatCurrency(tot) + '</td><td></td></tr></tfoot>' +
-      '</table>' +
+      '<table class="doc-tbl"><thead><tr><th style="width:35px;text-align:center">No</th><th>Uraian</th><th style="width:45px;text-align:center">Qty</th><th style="width:130px;text-align:right">Harga Satuan</th><th style="width:130px;text-align:right">Jumlah</th><th>Keterangan</th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;padding:18px;color:#94a3b8">Tidak ada item</td></tr>') + '</tbody>' +
+      '<tfoot><tr class="doc-total"><td colspan="4" style="text-align:right;font-size:12px">GRAND TOTAL</td><td style="text-align:right;font-size:13px">' + formatCurrency(tot) + '</td><td></td></tr></tfoot></table>' +
       (d.catatan_tambahan ? '<div class="doc-notes"><div class="doc-note-h">CATATAN</div><div class="doc-note-b">' + escapeHtml(d.catatan_tambahan) + '</div></div>' : '') +
       (links.length ? '<div class="doc-file-box"><div class="doc-file-h">FILE TERUPLOAD (' + links.length + ')</div>' + links.map(function(l) { return '<div class="doc-file-link"><a href="' + l.url + '" target="_blank">' + escapeHtml(l.name || 'File') + '</a></div>'; }).join('') + '</div>' : '') +
       (d.tanggal_pembayaran ? '<div style="margin-top:10px;font-size:11px;color:#64748b"><strong>Tanggal Pembayaran:</strong> ' + formatDate(d.tanggal_pembayaran) + '</div>' : '') +
@@ -525,8 +436,7 @@
         '<div class="doc-sig"><div class="doc-sig-lbl">DISETUJUI OLEH</div><div class="doc-sig-line"></div><div class="doc-sig-nm">' + escapeHtml(d.disetujui_oleh || '-') + '</div></div>' +
         '<div class="doc-sig"><div class="doc-sig-lbl">KEUANGAN</div><div class="doc-sig-line"></div><div class="doc-sig-nm">' + escapeHtml(d.keuangan || '-') + '</div></div>' +
         '<div class="doc-sig"><div class="doc-sig-lbl">DIREKTUR UTAMA</div><div class="doc-sig-line"></div><div class="doc-sig-nm">' + escapeHtml(d.direktur_utama || '-') + '</div></div>' +
-      '</div>' +
-    '</div>';
+      '</div></div>';
   }
 
   function previewDoc() {
@@ -535,28 +445,18 @@
     if (!data.items.length) return showToast('Tambahkan minimal 1 item', 'warning');
     var modal = document.getElementById('documentModal');
     var body = document.getElementById('docBody');
-    if (modal && body) {
-      body.innerHTML = buildDoc(data);
-      modal.classList.remove('hidden');
-    }
+    if (modal && body) { body.innerHTML = buildDoc(data); modal.classList.remove('hidden'); }
   }
 
-  /* Dipanggil app.js renderHistory → onclick viewItem(id) */
   function viewItem(id) {
     var it = state.history.find(function(d) { return d.id === id; });
     if (!it) return;
     var modal = document.getElementById('documentModal');
     var body = document.getElementById('docBody');
-    if (modal && body) {
-      body.innerHTML = buildDoc(it);
-      modal.classList.remove('hidden');
-    }
+    if (modal && body) { body.innerHTML = buildDoc(it); modal.classList.remove('hidden'); }
   }
 
-  function closeDoc() {
-    var modal = document.getElementById('documentModal');
-    if (modal) modal.classList.add('hidden');
-  }
+  function closeDoc() { var modal = document.getElementById('documentModal'); if (modal) modal.classList.add('hidden'); }
 
   function dlPDF() {
     var el = document.querySelector('.doc-wrap');
@@ -564,34 +464,138 @@
     showToast('Membuat PDF...', 'info');
     var cfg = getCurrentCompanyConfig();
     var compName = cfg ? cfg.code : 'doc';
-    html2pdf().set({
-      margin: 10,
-      filename: 'Pengajuan-' + compName.toUpperCase() + '-' + new Date().toISOString().split('T')[0] + '.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    }).from(el).save()
+    html2pdf().set({ margin: 10, filename: 'Pengajuan-' + compName.toUpperCase() + '-' + new Date().toISOString().split('T')[0] + '.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).save()
     .then(function() { showToast('PDF berhasil diunduh', 'success'); })
     .catch(function(e) { console.error(e); showToast('Gagal membuat PDF', 'error'); });
   }
 
-  /* ═══════════════════════════════════════════════════
-     STATS EXTENSION
-     utils.js updateStats() menangani: totalData, sentData, sheetsData, pendingData
-     Di sini kita tambahkan: lunasData
-     ═══════════════════════════════════════════════════ */
   var _origUpdateStats = window.updateStats;
   window.updateStats = function() {
     if (_origUpdateStats) _origUpdateStats();
     var lunas = 0;
-    if (state.history && state.history.length) {
-      lunas = state.history.filter(function(d) { return d.status === 'Lunas'; }).length;
-    }
+    if (state.history && state.history.length) lunas = state.history.filter(function(d) { return d.status === 'Lunas'; }).length;
     var el = document.getElementById('lunasData');
     if (el) el.textContent = lunas;
   };
 
-  console.log('%c index.html inline UI ready — menunggu DOMContentLoaded → app.js init()', 'color:#6366f1;');
+  /* ═══════════════════════════════════════════════════
+     MIGRASI SCRIPT — HAPUS SETELAH SELESAI
+     ═══════════════════════════════════════════════════ */
+  async function jalankanMigrasi() {
+    var btn = document.getElementById('btnMigrasi');
+    var logBox = document.getElementById('migrasiLog');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Memproses...';
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+
+    function log(msg, color) {
+      logBox.innerHTML += '<div style="color:' + (color || '#94a3b8') + ';margin:3px 0">' + msg + '</div>';
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    if (!state.db) { log('❌ Firestore belum terhubung! Login dulu.', '#ef4444'); btn.disabled = false; btn.textContent = 'Mulai Migrasi'; return; }
+
+    log('🔍 Membaca collection submissions...', '#f59e0b');
+
+    try {
+      var snap = await state.db.collection('submissions').get();
+
+      if (snap.empty) {
+        log('⚠️ Collection submissions kosong — tidak ada data untuk dipindahkan.', '#f59e0b');
+        log('✅ Collection Invoice-NMSA / Invoice-IPN akan otomatis terbuat saat submit data baru.', '#22c55e');
+        btn.disabled = false; btn.textContent = 'Tidak Ada Data'; return;
+      }
+
+      log('📋 Ditemukan ' + snap.size + ' document di submissions', '#22c55e');
+      log('', '');
+
+      var moved = 0, skipped = 0;
+      var batch = state.db.batch();
+
+      for (var i = 0; i < snap.docs.length; i++) {
+        var doc = snap.docs[i];
+        var data = doc.data();
+        var cid = data.company_id || '';
+
+        var targetCol = '';
+        if (cid === 'nmsa') targetCol = 'Invoice-NMSA';
+        else if (cid === 'ipn') targetCol = 'Invoice-IPN';
+        else { log('❌ Skip ' + doc.id + ' — company_id tidak dikenali: "' + cid + '"', '#ef4444'); skipped++; continue; }
+
+        /* Lengkapi field yang mungkin belum ada di data lama */
+        data.version = data.version || '3.5';
+        data.source = data.source || 'FinanceSync Pro v3.5 (migrated)';
+        data.migrated_from = 'submissions';
+        data.migrated_at = new Date().toISOString();
+        if (!data.company_name) data.company_name = cid === 'nmsa' ? 'PT Nusantara Mineral Sukses Abadi' : 'PT Industri Padi Nusantara';
+        if (!data.company_id) data.company_id = cid;
+        if (!data.google_drive_link) data.google_drive_link = '';
+        if (!data.google_drive_links) data.google_drive_links = [];
+        if (!data.file_count && data.file_count !== 0) data.file_count = 0;
+        if (data.synced_to_sheets === undefined) data.synced_to_sheets = false;
+        if (!data.items) data.items = [];
+
+        /* Cek duplikat */
+        var existing = await state.db.collection(targetCol).doc(doc.id).get();
+        if (existing.exists) {
+          log('⏭️ Skip ' + doc.id + ' — sudah ada di ' + targetCol, '#3b82f6');
+          skipped++; continue;
+        }
+
+        var newRef = state.db.collection(targetCol).doc(doc.id);
+        batch.set(newRef, data);
+        moved++;
+
+        log('✅ ' + doc.id + ' → ' + targetCol + ' | ' + (data.kode || '-') + ' | ' + (data.status || '-'), '#22c55e');
+
+        if (moved % 400 === 0) {
+          log('📦 Committing batch...', '#3b82f6');
+          await batch.commit();
+          batch = state.db.batch();
+        }
+      }
+
+      if (moved % 400 !== 0) {
+        log('📦 Committing final batch...', '#3b82f6');
+        await batch.commit();
+      }
+
+      log('');
+      log('══════════════════════════════════════', '#6366f1');
+      log('✅ Berhasil dipindahkan: ' + moved, '#22c55e');
+      log('⏭️ Dilewati (duplikat/tidak dikenal): ' + skipped, '#f59e0b');
+      log('══════════════════════════════════════', '#6366f1');
+
+      if (moved > 0) {
+        log('');
+        log('📌 LANGKAH SELANJUTNYA:', '#fbbf24');
+        log('1. Buka Firebase Console → Firestore', '#94a3b8');
+        log('2. Klik "..." di samping collection "submissions"', '#94a3b8');
+        log('3. Klik "Delete collection" → Konfirmasi hapus', '#ef4444');
+        log('4. HAPUS blok migrasi dari index.html', '#ef4444');
+        log('5. Upload index.html bersih', '#94a3b8');
+      }
+
+    } catch (e) {
+      log('❌ ERROR: ' + e.message, '#ef4444');
+      console.error('Migrasi error:', e);
+      if (e.message && e.message.indexOf('PERMISSION_DENIED') !== -1) {
+        log('', '');
+        log('⚠️ Permission denied! Tambahkan rule ini sementara di Firebase:', '#fbbf24');
+        log('   match /submissions/{docId} { allow read, write: if true; }', '#94a3b8');
+        log('   → Publish → jalankan ulang migrasi → kembalikan ke if request.auth != null', '#94a3b8');
+      }
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Selesai — Cek Log';
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'default';
+  }
+  /* ═══════════════════════════════════════════════════
+     AKHIR MIGRASI SCRIPT
+     ═══════════════════════════════════════════════════ */
   </script>
 </body>
 </html>
