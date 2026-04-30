@@ -349,6 +349,40 @@
             </div>
           </div>
         </div>
+
+        <!-- ═══ ADMIN MIGRASI TOOL — HAPUS SETELAH SELESAI ═══ -->
+        <div class="no-print mt-6 mb-4">
+          <button id="migToggle" class="btn btn-outline" style="font-size:11px;opacity:.5" onclick="void(0)">
+            ⚙️ Admin Tools
+          </button>
+          <div id="migPanel" style="display:none;margin-top:12px">
+            <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:14px;padding:20px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="font-size:22px">🔄</span>
+                  <div>
+                    <div style="font-size:14px;font-weight:700;color:#fbbf24">Migrasi Data</div>
+                    <div style="font-size:11px;color:#94a3b8">submissions → Invoice-NMSA / Invoice-IPN</div>
+                  </div>
+                </div>
+                <button id="migClose" class="btn btn-outline" style="padding:6px 12px;font-size:11px">✕ Tutup</button>
+              </div>
+              <div id="migLog" style="background:rgba(10,15,26,.5);border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;max-height:300px;overflow-y:auto;color:#94a3b8;min-height:60px">
+                <div style="color:#3e4f6f;text-align:center;padding:10px">Klik untuk memeriksa data...</div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+                <button id="migRun" class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-size:12px;box-shadow:0 4px 12px rgba(245,158,11,.2)">
+                  Mulai Migrasi
+                </button>
+                <button id="migClean" class="btn btn-danger" style="font-size:12px;display:none">
+                  🗑️ Hapus Collection Submissions
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- ═══ AKHIR ADMIN MIGRASI TOOL ═══ -->
+
       </div>
     </div>
   </main>
@@ -368,13 +402,13 @@
 
   <div id="toastBox" class="toast-container"></div>
 
-  <!-- PATH DIKOREKSI: css/styles.css dan js/ -->
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/firebase-init.js"></script>
   <script src="js/firestore-db.js"></script>
   <script src="js/drive-sync.js"></script>
-  <script src="js/app.js"></script>
+  < <script src="js/app.js"></script>
+  <script src="js/migrasi.js"></script>
 
   <script>
   var itemCnt = 0;
@@ -400,6 +434,7 @@
     }
     var user = getCurrentUser();
     if (user) document.getElementById('hdrEmail').textContent = user.email;
+    if (typeof initMigrasiUI === 'function') initMigrasiUI();
   }
 
   function showLoginScreen() {
@@ -457,7 +492,7 @@
       '<div class="item-row grid grid-cols-12 gap-2 p-3 bg-[--bg]/40 rounded-lg border border-[--border]" id="it-' + n + '">' +
       '<div class="col-span-5"><input type="text" name="in_' + n + '" class="input-field text-sm" placeholder="Nama barang/jasa" value="' + escapeHtml(d.ket || d.name || '') + '"></div>' +
       '<div class="col-span-2"><input type="number" name="iq_' + n + '" class="input-field text-sm text-center" placeholder="Qty" value="' + (d.qty || 1) + '" min="1"></div>' +
-      '<div class="col-span-3"><input type="number" name="ip_' + n + '" class="input-field text-sm mono" placeholder="Harga" value="' + (d.nominal || d.price || '') + '" min="0"></div>' +
+      <div class="col-span-3"><input type="number" name="ip_' + n + '" class="input-field text-sm mono" placeholder="Harga" value="' + (d.nominal || d.price || '') + '" min="0"></div>' +
       '<div class="col-span-2 flex items-center justify-end gap-1">' +
         '<span class="text-[10px] font-mono text-[--muted]" id="sub-' + n + '">Rp 0</span>' +
         (n > 1 ? '<button type="button" onclick="rmItem(' + n + ')" class="w-6 h-6 rounded bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs flex items-center justify-center transition-colors">×</button>' : '') +
