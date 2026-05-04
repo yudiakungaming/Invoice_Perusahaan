@@ -332,8 +332,65 @@ select.input-field {
   margin-bottom: 10px;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 .h-item:hover { border-color: rgba(99, 102, 241, 0.35); transform: translateX(3px); }
+
+/* ==================== HISTORY ACTIONS (EDIT/DELETE) ==================== */
+.h-item-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.2s;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.h-item:hover .h-item-actions {
+  opacity: 1; /* Show on hover */
+}
+
+@media (max-width: 768px) {
+  .h-item-actions { opacity: 1; position: relative; top: auto; transform: none; justify-content: flex-end; margin-top: 10px; }
+}
+
+.h-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.h-action-btn:hover { transform: scale(1.1); color: var(--fg); }
+.h-action-edit:hover { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+.h-action-del:hover { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+/* ==================== EDIT BANNER ==================== */
+.edit-mode-banner {
+  display: none; /* Hidden by default */
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(245, 158, 11, 0.15); /* Warning/Orange bg */
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  animation: slideUp 0.3s ease-out;
+}
+.edit-mode-banner.show { display: flex; }
+
+.edit-banner-text { font-size: 13px; font-weight: 600; color: #fcd34d; }
+.edit-banner-close { font-size: 11px; padding: 4px 10px; }
 
 /* ==================== FILE CARDS ==================== */
 .f-card {
